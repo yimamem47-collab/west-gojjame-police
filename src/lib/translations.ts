@@ -113,6 +113,12 @@ export const translations = {
     deleteAudio: 'Delete Audio',
     maxPhotos: 'Max 3 photos allowed',
     recording: 'Recording...',
+    online: 'Online',
+    offline: 'Offline',
+    syncing: 'Syncing...',
+    synced: 'Synced',
+    menu: 'Menu',
+    theme: 'Display Theme',
   },
   am: {
     home: 'መነሻ',
@@ -226,5 +232,11 @@ export const translations = {
     deleteAudio: 'ድምፅ ያጥፉ',
     maxPhotos: 'ቢበዛ 3 ፎቶዎች ይፈቀዳሉ',
     recording: 'በመቅረጽ ላይ...',
+    online: 'ኦንላይን',
+    offline: 'ኦፍላይን',
+    syncing: 'በማመሳሰል ላይ...',
+    synced: 'ተመሳስሏል',
+    menu: 'ሜኑ',
+    theme: 'የማሳያ ገጽታ',
   }
 };

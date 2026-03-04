@@ -12,6 +12,7 @@ export interface CrimeReport {
   createdAt: number;
   photos?: string[];
   audio?: string;
+  synced?: boolean;
 }
 
 export interface UserProfile {
@@ -50,6 +51,7 @@ export const storage = {
       ...report,
       id: crypto.randomUUID(),
       createdAt: Date.now(),
+      synced: false,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify([newReport, ...reports]));
     return newReport;
@@ -75,6 +77,14 @@ export const storage = {
     const reports = storage.getReports();
     const updated = reports.map(r => r.id === id ? { ...r, ...data } : r);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  },
+  syncReports: async () => {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    const reports = storage.getReports();
+    const updated = reports.map(r => ({ ...r, synced: true }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    return updated;
   },
   saveProfile: (profile: UserProfile) => {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
