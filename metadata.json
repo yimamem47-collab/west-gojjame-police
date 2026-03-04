@@ -1,0 +1,5 @@
+{
+  "name": "West Gojjam Zone Police App",
+  "description": "A professional mobile-first application for the West Gojjam Zone Police, providing emergency contacts, crime reporting, and traffic safety information.",
+  "requestFramePermissions": ["camera"]
+}
