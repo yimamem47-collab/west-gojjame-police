@@ -1997,6 +1997,7 @@ export default function App() {
 
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [user, setUser] = useState(auth.currentUser);
   const [news, setNews] = useState<any[]>([]);
   const [stations, setStations] = useState<any[]>([]);
@@ -2021,18 +2022,21 @@ export default function App() {
 
   useEffect(() => {
     const initAuth = async () => {
+      setIsAuthLoading(true);
       try {
         const u = await ensureAnonymousAuth();
         setUser(u);
-        setIsAuthReady(true);
+        setAuthError(null);
       } catch (error: any) {
         console.error("Auth initialization failed:", error);
         if (error.code === 'auth/admin-restricted-operation') {
-          setAuthError(error.message);
+          setAuthError("Anonymous reporting is currently disabled in the backend. You can still browse public information or sign in with Google to report.");
         } else {
           setAuthError("Authentication failed. Some features may be limited.");
         }
+      } finally {
         setIsAuthReady(true);
+        setIsAuthLoading(false);
       }
     };
     initAuth();
@@ -2138,24 +2142,50 @@ export default function App() {
             "mobile-container pb-24",
             theme === 'dark' ? "bg-slate-950" : "bg-slate-50"
           )}>
-            {authError && (
-              <div className="bg-amber-500 text-white p-4 text-[10px] font-bold text-center relative z-[100]">
-                <div className="flex flex-col items-center gap-2">
-                  <p>{authError}</p>
+            {authError && !user && (
+              <div className="bg-amber-500 text-white p-4 text-[10px] font-bold text-center relative z-[100] shadow-lg">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle size={14} />
+                    <p>{authError}</p>
+                  </div>
                   <div className="flex gap-2">
                     <button 
-                      onClick={() => window.open('https://console.firebase.google.com/', '_blank')}
-                      className="bg-white text-amber-600 px-3 py-1 rounded-full uppercase tracking-widest hover:bg-amber-50 transition-colors"
+                      onClick={async () => {
+                        try {
+                          setIsAuthLoading(true);
+                          const u = await signInWithGoogle();
+                          setUser(u);
+                          setAuthError(null);
+                        } catch (e) {
+                          console.error(e);
+                        } finally {
+                          setIsAuthLoading(false);
+                        }
+                      }}
+                      className="bg-white text-amber-600 px-4 py-2 rounded-xl uppercase tracking-widest hover:bg-amber-50 transition-all flex items-center gap-2 shadow-sm active:scale-95"
                     >
-                      Open Console
+                      <PoliceLogo className="w-4 h-4" />
+                      Sign in with Google
                     </button>
                     <button 
                       onClick={() => setAuthError(null)}
-                      className="bg-amber-600 text-white px-3 py-1 rounded-full uppercase tracking-widest hover:bg-amber-700 transition-colors"
+                      className="bg-amber-600 text-white px-4 py-2 rounded-xl uppercase tracking-widest hover:bg-amber-700 transition-all active:scale-95"
                     >
                       Dismiss
                     </button>
                   </div>
+                  <p className="text-[8px] opacity-80 font-normal italic">
+                    Administrators: Enable 'Anonymous' in Firebase Console &gt; Authentication &gt; Sign-in method
+                  </p>
+                </div>
+              </div>
+            )}
+            {isAuthLoading && (
+              <div className="fixed inset-0 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm z-[200] flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-12 h-12 border-4 border-vibrant-blue border-t-transparent rounded-full animate-spin" />
+                  <p className="text-xs font-black text-vibrant-blue uppercase tracking-widest animate-pulse">Authenticating...</p>
                 </div>
               </div>
             )}
