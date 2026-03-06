@@ -1,0 +1,135 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: crime_reports
+    // Fields:
+    //   - description: string (required)
+    //   - type: string (required, enum: crime, traffic)
+    //   - location: string (optional)
+    //   - timestamp: timestamp (required)
+    //   - mediaUrls: list (optional)
+    //   - status: string (required, enum: pending, investigating, resolved)
+    //   - authorUid: string (required, immutable)
+    //
+    // Collection: emergency_hotlines
+    // Fields:
+    //   - name: string (required)
+    //   - nameAm: string (optional)
+    //   - phone: string (required)
+    //   - zone: string (optional)
+    //
+    // Collection: news_alerts
+    // Fields:
+    //   - title: string (required)
+    //   - titleAm: string (optional)
+    //   - content: string (required)
+    //   - contentAm: string (optional)
+    //   - type: string (required, enum: alert, news, missing)
+    //   - image: string (optional)
+    //   - date: string (required)
+    //   - timestamp: timestamp (required)
+    //
+    // Collection: police_stations
+    // Fields:
+    //   - name: string (required)
+    //   - nameAm: string (optional)
+    //   - location: string (optional)
+    //   - distance: string (optional)
+    //   - phone: string (required)
+    //   - coordinates: map (optional)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "Yimamem47@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidCrimeReport(data) {
+      return data.description is string && data.description.size() > 0 && data.description.size() < 5000 &&
+             data.type in ['crime', 'traffic'] &&
+             data.status in ['pending', 'investigating', 'resolved'] &&
+             data.authorUid == request.auth.uid;
+    }
+
+    function isValidNewsAlert(data) {
+      return data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.content is string && data.content.size() > 0 && data.content.size() < 10000 &&
+             data.type in ['alert', 'news', 'missing'];
+    }
+
+    function isValidPoliceStation(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
+             data.phone is string && data.phone.size() > 0 && data.phone.size() < 20;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAuthenticated() && request.auth.uid == userId && 
+                    hasOnlyAllowedFields(['fullName', 'phoneNumber', 'email', 'address', 'role']) &&
+                    request.resource.data.role == 'user'; // Default role
+      allow update: if isAuthenticated() && (
+                      (request.auth.uid == userId && request.resource.data.role == resource.data.role) || 
+                      isAdmin()
+                    );
+    }
+
+    // Crime Reports (Anonymous Tips)
+    match /crime_reports/{reportId} {
+      // Reporters can only create reports. They cannot read them back (for anonymity/security).
+      // Only admins can read and manage reports.
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && 
+                    hasRequiredFields(['description', 'type', 'status', 'authorUid', 'timestamp']) &&
+                    isValidCrimeReport(request.resource.data);
+      allow update, delete: if isAdmin();
+    }
+
+    // Public Collections (News, Hotlines, Stations)
+    match /news_alerts/{alertId} {
+      allow read: if true; // Publicly readable
+      allow write: if isAdmin() && isValidNewsAlert(request.resource.data);
+    }
+
+    match /emergency_hotlines/{hotlineId} {
+      allow read: if true; // Publicly readable
+      allow write: if isAdmin();
+    }
+
+    match /police_stations/{stationId} {
+      allow read: if true; // Publicly readable
+      allow write: if isAdmin() && isValidPoliceStation(request.resource.data);
+    }
+
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

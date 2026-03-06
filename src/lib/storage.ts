@@ -9,6 +9,7 @@ export interface CrimeReport {
   officerName: string;
   station: string;
   type: 'crime' | 'traffic';
+  status: 'pending' | 'investigating' | 'resolved';
   createdAt: number;
   photos?: string[];
   audio?: string;

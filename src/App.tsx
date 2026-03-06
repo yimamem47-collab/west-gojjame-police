@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import * as React from 'react';
+import { useState, useEffect, useRef, Component } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -44,16 +45,154 @@ import {
   Menu as MenuIcon,
   Palette,
   Moon,
-  Sun
+  Sun,
+  Lock,
+  Shield,
+  Newspaper
 } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { cn } from './lib/utils';
 import { storage, EMERGENCY_CONTACTS, type CrimeReport, type UserProfile } from './lib/storage';
 import { format } from 'date-fns';
 import { translations, type Language } from './lib/translations';
+import { 
+  db, 
+  auth, 
+  ensureAnonymousAuth, 
+  handleFirestoreError, 
+  OperationType, 
+  collection, 
+  query, 
+  orderBy, 
+  onSnapshot,
+  signInWithGoogle,
+  logout,
+  Timestamp,
+  setDoc,
+  doc
+} from './firebase';
+
+// --- Error Boundary ---
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: any;
+}
+
+class ErrorBoundary extends Component<any, any> {
+  public state: ErrorBoundaryState = {
+    hasError: false,
+    error: null
+  };
+
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      let errorMessage = "Something went wrong.";
+      try {
+        const parsed = JSON.parse(this.state.error.message);
+        if (parsed.error) errorMessage = parsed.error;
+      } catch (e) {
+        errorMessage = this.state.error.message || errorMessage;
+      }
+
+      return (
+        <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900">
+          <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-xl max-w-md w-full text-center space-y-6">
+            <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto">
+              <AlertCircle size={40} />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Application Error</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                {errorMessage}
+              </p>
+            </div>
+            <button 
+              onClick={() => window.location.reload()}
+              className="w-full bg-vibrant-blue text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform"
+            >
+              Reload Application
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (this as any).props.children;
+  }
+}
 
 // --- Constants ---
-const POLICE_LOGO_URL = "https://files.oaiusercontent.com/file-67c70697771c4997973700"; // Updated with the provided logo
+const POLICE_LOGO_URL = "https://files.oaiusercontent.com/file-67c70697771c4997973700";
+
+const PoliceLogo = ({ className = "w-12 h-12" }: { className?: string }) => (
+  <div className={cn("relative flex items-center justify-center", className)}>
+    {/* Outer Glow */}
+    <div className="absolute inset-0 bg-vibrant-blue/20 blur-xl rounded-full" />
+    
+    {/* Main Emblem Circle */}
+    <div className="relative w-full h-full bg-gradient-to-br from-vibrant-blue to-slate-900 rounded-full border-2 border-eth-yellow/50 shadow-2xl flex items-center justify-center overflow-hidden">
+      {/* Radiating Lines Background */}
+      <div className="absolute inset-0 opacity-20">
+        {[...Array(12)].map((_, i) => (
+          <div 
+            key={i} 
+            className="absolute top-1/2 left-1/2 w-full h-[1px] bg-eth-yellow origin-left"
+            style={{ transform: `rotate(${i * 30}deg) translate(-50%, -50%)` }}
+          />
+        ))}
+      </div>
+
+      {/* Center Star */}
+      <div className="relative z-10 text-eth-yellow drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]">
+        <ShieldCheck size={32} strokeWidth={1.5} />
+      </div>
+
+      {/* WGP Text with Flag Colors */}
+      <div className="absolute top-1 left-1/2 -translate-x-1/2 flex gap-0.5 scale-[0.6]">
+        <span className="w-2 h-2 rounded-full bg-eth-green" />
+        <span className="w-2 h-2 rounded-full bg-eth-yellow" />
+        <span className="w-2 h-2 rounded-full bg-eth-red" />
+      </div>
+      
+      {/* Bottom Laurel Wreath (Simplified) */}
+      <div className="absolute bottom-1 text-eth-yellow/40">
+        <div className="flex gap-4">
+          <div className="rotate-45">)</div>
+          <div className="-rotate-45">(</div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// --- Mock Data ---
+const MOCK_NEWS = [
+  { id: '1', type: 'alert', title: 'Road Closure Alert', titleAm: 'የመንገድ መዘጋት ማንቂያ', content: 'Main road to Finote Selam is closed for maintenance.', contentAm: 'ወደ ፍኖተ ሰላም የሚወስደው ዋና መንገድ ለጥገና ተዘግቷል።', date: '2026-03-05', image: 'https://picsum.photos/seed/road/800/400' },
+  { id: '2', type: 'missing', title: 'Missing Person: Abebe Bikila', titleAm: 'የጠፋ ሰው፡ አበበ ቢቂላ', content: 'Last seen near the central market on Monday.', contentAm: 'ሰኞ እለት በማዕከላዊ ገበያ አካባቢ ታይቶ ነበር።', date: '2026-03-04', image: 'https://picsum.photos/seed/person/800/400' },
+  { id: '3', type: 'news', title: 'New Police Station Opened', titleAm: 'አዲስ የፖሊስ ጣቢያ ተከፈተ', content: 'A new community police station has been inaugurated in Bure.', contentAm: 'በቡሬ አዲስ የማህበረሰብ ፖሊስ ጣቢያ ተመርቋል።', date: '2026-03-02', image: 'https://picsum.photos/seed/station/800/400' },
+];
+
+const MOCK_STATIONS = [
+  { id: '1', name: 'Finote Selam Central Station', nameAm: 'ፍኖተ ሰላም ማዕከላዊ ጣቢያ', distance: '1.2 km', phone: '0582230001', location: 'Finote Selam, Zone 1' },
+  { id: '2', name: 'Bure District Police', nameAm: 'ቡሬ ወረዳ ፖሊስ', distance: '15.5 km', phone: '0582230002', location: 'Bure Town' },
+  { id: '3', name: 'Jiga Police Post', nameAm: 'ጂጋ ፖሊስ ኬላ', distance: '22.1 km', phone: '0582230003', location: 'Jiga' },
+];
 
 // --- Context ---
 type Theme = 'light' | 'dark' | 'police';
@@ -142,17 +281,7 @@ const Header = ({ title, subtitle }: { title: string; subtitle: string }) => {
       </div>
       
       <div className="flex items-center gap-5 relative z-10">
-        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-2xl p-1 border-2 border-eth-yellow/30">
-          <img 
-            src={POLICE_LOGO_URL} 
-            alt="Amhara Police Logo" 
-            className="w-full h-full object-contain rounded-full"
-            referrerPolicy="no-referrer"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = "https://picsum.photos/seed/police-logo/200/200";
-            }}
-          />
-        </div>
+        <PoliceLogo className="w-16 h-16" />
         <div>
           <h1 className="text-xl font-black tracking-tight leading-tight">{title}</h1>
           <p className="text-eth-yellow text-sm font-bold mt-0.5">{subtitle}</p>
@@ -170,8 +299,8 @@ const EmergencyButton = () => (
     href="tel:991"
     className="fixed bottom-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-eth-red text-white rounded-full flex flex-col items-center justify-center shadow-2xl z-50 active:scale-95 transition-transform border-2 border-white overflow-hidden"
   >
-    <div className="absolute inset-0 opacity-10 pointer-events-none">
-      <img src={POLICE_LOGO_URL} alt="" className="w-full h-full object-contain scale-150" />
+    <div className="absolute inset-0 opacity-10 pointer-events-none flex items-center justify-center">
+      <PoliceLogo className="w-full h-full scale-150" />
     </div>
     <Phone size={18} fill="currentColor" className="relative z-10" />
     <span className="text-[7px] font-bold uppercase mt-0.5 relative z-10">991</span>
@@ -186,6 +315,8 @@ const MenuPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
     {
       title: t.ourServices,
       items: [
+        { id: 'news', icon: Newspaper, label: t.newsAlerts, color: 'text-vibrant-blue', bg: 'bg-vibrant-blue/5' },
+        { id: 'station-locator', icon: MapPin, label: t.stationLocator, color: 'text-eth-green', bg: 'bg-eth-green/5' },
         { id: 'services', icon: Info, label: t.info, color: 'text-amber-600', bg: 'bg-amber-50' },
         { id: 'contacts', icon: Phone, label: t.contacts, color: 'text-blue-600', bg: 'bg-blue-50' },
       ]
@@ -194,6 +325,7 @@ const MenuPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
       title: t.appGuide,
       items: [
         { id: 'help', icon: HelpCircle, label: t.help, color: 'text-slate-600', bg: 'bg-slate-50' },
+        { id: 'privacy', icon: Lock, label: t.privacySecurity, color: 'text-vibrant-blue', bg: 'bg-vibrant-blue/5' },
         { id: 'about', icon: Info, label: t.aboutUs, color: 'text-vibrant-blue', bg: 'bg-vibrant-blue/5' },
       ]
     }
@@ -260,7 +392,7 @@ const MenuPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
                   </div>
                   <span className="font-bold text-slate-700 dark:text-slate-200">{item.label}</span>
                 </div>
-                <ChevronRight size={18} className="text-slate-300 dark:text-slate-600 group-hover:text-police-navy transition-colors" />
+                <ChevronRight size={18} className="text-slate-300 dark:text-slate-600 group-hover:text-vibrant-blue transition-colors" />
               </button>
             ))}
           </div>
@@ -291,25 +423,15 @@ const AboutPage = ({ onBack }: { onBack: () => void }) => {
       </div>
 
       <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-sm space-y-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-police-navy/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-vibrant-blue/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
         
         <div className="flex justify-center mb-4">
-          <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-xl p-1 border-2 border-eth-yellow/30">
-            <img 
-              src={POLICE_LOGO_URL} 
-              alt="Police Logo" 
-              className="w-full h-full object-contain rounded-full"
-              referrerPolicy="no-referrer"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = "https://picsum.photos/seed/police-logo/200/200";
-              }}
-            />
-          </div>
+          <PoliceLogo className="w-24 h-24" />
         </div>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <h3 className="text-lg font-bold text-police-navy flex items-center gap-2">
+            <h3 className="text-lg font-bold text-vibrant-blue flex items-center gap-2">
               <History size={20} className="text-eth-yellow" />
               {t.history}
             </h3>
@@ -319,7 +441,7 @@ const AboutPage = ({ onBack }: { onBack: () => void }) => {
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-lg font-bold text-police-navy flex items-center gap-2">
+            <h3 className="text-lg font-bold text-vibrant-blue flex items-center gap-2">
               <Target size={20} className="text-eth-yellow" />
               {t.mission}
             </h3>
@@ -346,7 +468,8 @@ const AboutPage = ({ onBack }: { onBack: () => void }) => {
 };
 
 const ProfilePage = () => {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
+  const user = auth.currentUser;
   const [profile, setProfile] = useState<UserProfile>({
     fullName: '',
     phoneNumber: '',
@@ -376,12 +499,10 @@ const ProfilePage = () => {
       </div>
 
       <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-sm space-y-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-police-navy/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-vibrant-blue/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
         
         <div className="flex justify-center mb-4">
-          <div className="w-20 h-20 bg-vibrant-blue/5 dark:bg-vibrant-blue/10 rounded-full flex items-center justify-center text-vibrant-blue">
-            <User size={40} />
-          </div>
+          <PoliceLogo className="w-20 h-20" />
         </div>
 
         <form onSubmit={handleSave} className="space-y-5">
@@ -389,7 +510,7 @@ const ProfilePage = () => {
             <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">{t.fullName}</label>
             <input 
               type="text"
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-3.5 px-4 text-sm outline-none focus:ring-2 focus:ring-police-navy/20 focus:border-police-navy transition-all dark:text-white"
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-3.5 px-4 text-sm outline-none focus:ring-2 focus:ring-vibrant-blue/20 focus:border-vibrant-blue transition-all dark:text-white"
               value={profile.fullName}
               onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
               placeholder="e.g. Abebe Bikila"
@@ -400,7 +521,7 @@ const ProfilePage = () => {
             <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">{t.phoneNumber}</label>
             <input 
               type="tel"
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-3.5 px-4 text-sm outline-none focus:ring-2 focus:ring-police-navy/20 focus:border-police-navy transition-all dark:text-white"
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-3.5 px-4 text-sm outline-none focus:ring-2 focus:ring-vibrant-blue/20 focus:border-vibrant-blue transition-all dark:text-white"
               value={profile.phoneNumber}
               onChange={(e) => setProfile({ ...profile, phoneNumber: e.target.value })}
               placeholder="e.g. 0911223344"
@@ -411,7 +532,7 @@ const ProfilePage = () => {
             <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">{t.email}</label>
             <input 
               type="email"
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-3.5 px-4 text-sm outline-none focus:ring-2 focus:ring-police-navy/20 focus:border-police-navy transition-all dark:text-white"
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-3.5 px-4 text-sm outline-none focus:ring-2 focus:ring-vibrant-blue/20 focus:border-vibrant-blue transition-all dark:text-white"
               value={profile.email}
               onChange={(e) => setProfile({ ...profile, email: e.target.value })}
               placeholder="e.g. abebe@example.com"
@@ -421,7 +542,7 @@ const ProfilePage = () => {
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">{t.address}</label>
             <textarea 
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-3.5 px-4 text-sm outline-none focus:ring-2 focus:ring-police-navy/20 focus:border-police-navy transition-all dark:text-white resize-none"
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-3.5 px-4 text-sm outline-none focus:ring-2 focus:ring-vibrant-blue/20 focus:border-vibrant-blue transition-all dark:text-white resize-none"
               rows={3}
               value={profile.address}
               onChange={(e) => setProfile({ ...profile, address: e.target.value })}
@@ -429,7 +550,33 @@ const ProfilePage = () => {
             />
           </div>
 
-          <div className="pt-2">
+          <div className="pt-2 space-y-4">
+            {user?.isAnonymous === false ? (
+              <button 
+                type="button"
+                onClick={() => logout()}
+                className="w-full bg-red-500 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
+              >
+                <Lock size={20} />
+                {t.logout}
+              </button>
+            ) : (
+              <button 
+                type="button"
+                onClick={() => signInWithGoogle()}
+                className="w-full bg-white border-2 border-vibrant-blue text-vibrant-blue font-bold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
+              >
+                <User size={20} />
+                {t.signInWithGoogle}
+              </button>
+            )}
+
+            <div className="bg-vibrant-blue/5 dark:bg-vibrant-blue/10 p-4 rounded-2xl flex items-center gap-3 border border-vibrant-blue/10">
+              <ShieldCheck size={20} className="text-eth-green" />
+              <p className="text-[10px] font-bold text-vibrant-blue uppercase tracking-wider">
+                {lang === 'am' ? 'የእርስዎ መረጃ በምስጠራ የተጠበቀ ነው' : 'Your data is protected with end-to-end encryption'}
+              </p>
+            </div>
             <button 
               type="submit"
               className="w-full bg-vibrant-blue text-white font-bold py-4 rounded-xl shadow-lg active:scale-[0.98] transition-all hover:bg-slate-800 flex items-center justify-center gap-2"
@@ -488,7 +635,7 @@ const HelpPage = ({ onBack }: { onBack: () => void }) => {
             transition={{ delay: i * 0.1 }}
             className="bg-white dark:bg-slate-800 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-700 shadow-sm flex gap-4 group active:scale-[0.98] transition-transform"
           >
-            <div className="bg-police-navy/5 dark:bg-police-navy/10 p-4 rounded-2xl text-police-navy h-fit group-hover:bg-police-navy group-hover:text-white transition-colors">
+            <div className="bg-vibrant-blue/5 dark:bg-vibrant-blue/10 p-4 rounded-2xl text-vibrant-blue h-fit group-hover:bg-vibrant-blue group-hover:text-white transition-colors">
               <item.icon size={24} />
             </div>
             <div className="flex-1">
@@ -505,6 +652,84 @@ const HelpPage = ({ onBack }: { onBack: () => void }) => {
         <p className="text-[10px] text-vibrant-blue/70 font-medium">
           West Gojjam Zone Police is here to serve you 24/7.
         </p>
+      </div>
+    </div>
+  );
+};
+
+const PrivacySecurityPage = ({ onBack }: { onBack: () => void }) => {
+  const { t, lang } = useTranslation();
+  
+  const tips = lang === 'am' ? [
+    "ሁልጊዜ ለስልክዎ ጠንካራ የይለፍ ቃል ይጠቀሙ።",
+    "የመግቢያ መረጃዎን ለማንም አያጋሩ።",
+    "ማንኛውንም አጠራጣሪ ነገር ወዲያውኑ ያሳውቁ።",
+    "አፑን ሁልጊዜ ወደ አዲሱ ስሪት ያዘምኑ።"
+  ] : [
+    "Always use a strong password for your device.",
+    "Do not share your login credentials with anyone.",
+    "Report any suspicious activity immediately.",
+    "Keep the app updated to the latest version."
+  ];
+
+  return (
+    <div className="p-6 space-y-8 pb-32">
+      <div className="flex items-center gap-4">
+        <button onClick={onBack} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full active:scale-90 transition-transform">
+          <ChevronRight className="rotate-180" size={20} />
+        </button>
+        <h2 className="text-2xl font-black text-slate-800 dark:text-white">{t.privacySecurity}</h2>
+      </div>
+
+      <div className="space-y-6">
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-sm space-y-4"
+        >
+          <div className="flex items-center gap-3 text-vibrant-blue">
+            <Shield size={24} />
+            <h3 className="text-lg font-bold">{t.privacyPolicy}</h3>
+          </div>
+          <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+            {t.privacyText}
+          </p>
+        </motion.div>
+
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-sm space-y-4"
+        >
+          <div className="flex items-center gap-3 text-eth-green">
+            <Lock size={24} />
+            <h3 className="text-lg font-bold">{t.dataSecurity}</h3>
+          </div>
+          <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+            {t.securityText}
+          </p>
+        </motion.div>
+
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="bg-eth-yellow/10 p-6 rounded-[2.5rem] border border-eth-yellow/20 space-y-4"
+        >
+          <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            <AlertCircle size={18} className="text-eth-red" />
+            {t.securityTips}
+          </h3>
+          <ul className="space-y-3">
+            {tips.map((tip, i) => (
+              <li key={i} className="flex items-start gap-3 text-xs text-slate-600 dark:text-slate-400">
+                <div className="w-1.5 h-1.5 rounded-full bg-eth-green mt-1.5 shrink-0" />
+                {tip}
+              </li>
+            ))}
+          </ul>
+        </motion.div>
       </div>
     </div>
   );
@@ -598,7 +823,7 @@ const QRScannerPage = ({ onBack }: { onBack: () => void }) => {
             </div>
             <button 
               onClick={() => setScanResult(null)}
-              className="w-full bg-police-navy text-white font-bold py-4 rounded-2xl active:scale-95 transition-transform"
+              className="w-full bg-vibrant-blue text-white font-bold py-4 rounded-2xl active:scale-95 transition-transform"
             >
               {t.scanQr}
             </button>
@@ -618,20 +843,57 @@ const QRScannerPage = ({ onBack }: { onBack: () => void }) => {
   );
 };
 
-const HomePage = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
-  const { t } = useTranslation();
+const HomePage = ({ onNavigate, news }: { onNavigate: (page: string) => void, news: any[] }) => {
+  const { t, lang } = useTranslation();
   const menuItems = [
-    { id: 'contacts', icon: Phone, label: t.contacts, labelAm: 'ድንገተኛ ስልክ ቁጥሮች', color: 'bg-vibrant-blue/10 text-vibrant-blue', gradient: 'from-vibrant-blue/10 to-vibrant-blue/5' },
-    { id: 'crime', icon: ShieldAlert, label: t.crime, labelAm: 'የወንጅል ቁጥጥር', color: 'bg-eth-red/10 text-eth-red', gradient: 'from-eth-red/10 to-eth-red/5' },
-    { id: 'traffic', icon: Car, label: t.traffic, labelAm: 'የትራፊክ ደህንነት', color: 'bg-eth-green/10 text-eth-green', gradient: 'from-eth-green/10 to-eth-green/5' },
-    { id: 'services', icon: Info, label: t.info, labelAm: 'የፖሊስ አገልግሎት', color: 'bg-eth-yellow/10 text-amber-600', gradient: 'from-eth-yellow/10 to-eth-yellow/5' },
-    { id: 'qr', icon: QrCode, label: t.scanQr, labelAm: 'QR ኮድ ይቃኙ', color: 'bg-indigo-50 text-indigo-600', gradient: 'from-indigo-500/10 to-indigo-600/5' },
-    { id: 'help', icon: HelpCircle, label: t.help, labelAm: 'እርዳታ', color: 'bg-slate-50 text-slate-600', gradient: 'from-slate-500/10 to-slate-600/5' },
-    { id: 'about', icon: Info, label: t.aboutUs, labelAm: 'ስለ እኛ', color: 'bg-vibrant-blue/5 text-vibrant-blue', gradient: 'from-vibrant-blue/10 to-vibrant-blue/5' },
+    { id: 'news', icon: Newspaper, label: t.newsAlerts, labelAm: 'ዜና እና ማንቂያዎች', color: 'text-vibrant-blue', bg: 'bg-vibrant-blue/5', gradient: 'from-vibrant-blue/10 to-vibrant-blue/5' },
+    { id: 'station-locator', icon: MapPin, label: t.stationLocator, labelAm: 'ጣቢያ መፈለጊያ', color: 'text-eth-green', bg: 'bg-eth-green/5', gradient: 'from-eth-green/10 to-eth-green/5' },
+    { id: 'contacts', icon: Phone, label: t.contacts, labelAm: 'ድንገተኛ ስልክ ቁጥሮች', color: 'text-vibrant-blue', bg: 'bg-vibrant-blue/10', gradient: 'from-vibrant-blue/10 to-vibrant-blue/5' },
+    { id: 'crime', icon: ShieldAlert, label: t.crime, labelAm: 'የወንጅል ቁጥጥር', color: 'text-eth-red', bg: 'bg-eth-red/10', gradient: 'from-eth-red/10 to-eth-red/5' },
+    { id: 'traffic', icon: Car, label: t.traffic, labelAm: 'የትራፊክ ደህንነት', color: 'text-eth-green', bg: 'bg-eth-green/10', gradient: 'from-eth-green/10 to-eth-green/5' },
+    { id: 'services', icon: Info, label: t.info, labelAm: 'የፖሊስ አገልግሎት', color: 'text-amber-600', bg: 'bg-eth-yellow/10', gradient: 'from-eth-yellow/10 to-eth-yellow/5' },
+    { id: 'qr', icon: QrCode, label: t.scanQr, labelAm: 'QR ኮድ ይቃኙ', color: 'text-indigo-600', bg: 'bg-indigo-50', gradient: 'from-indigo-500/10 to-indigo-600/5' },
+    { id: 'about', icon: Info, label: t.aboutUs, labelAm: 'ስለ እኛ', color: 'text-vibrant-blue', bg: 'bg-vibrant-blue/5', gradient: 'from-vibrant-blue/10 to-vibrant-blue/5' },
   ];
 
   return (
     <div className="p-6 space-y-8">
+      {/* Latest News Preview */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between px-2">
+          <h3 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-xs">{t.latestNews}</h3>
+          <button onClick={() => onNavigate('news')} className="text-vibrant-blue text-[10px] font-bold uppercase hover:underline">{t.viewDetails}</button>
+        </div>
+        <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+          {news.slice(0, 5).map((item) => (
+            <motion.button
+              key={item.id}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => onNavigate('news')}
+              className="min-w-[280px] bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm text-left"
+            >
+              <div className="h-32 relative">
+                <img src={item.image} alt="" className="w-full h-full object-cover" />
+                <div className="absolute top-3 left-3">
+                  <span className={cn(
+                    "px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest",
+                    item.type === 'alert' ? "bg-eth-red text-white" : 
+                    item.type === 'missing' ? "bg-eth-yellow text-slate-900" : 
+                    "bg-vibrant-blue text-white"
+                  )}>
+                    {item.type}
+                  </span>
+                </div>
+              </div>
+              <div className="p-4 space-y-1">
+                <h4 className="font-bold text-slate-800 dark:text-white line-clamp-1">{lang === 'am' ? item.titleAm : item.title}</h4>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">{lang === 'am' ? item.contentAm : item.content}</p>
+              </div>
+            </motion.button>
+          ))}
+        </div>
+      </div>
+
       <motion.div 
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -665,7 +927,7 @@ const HomePage = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
             
             {/* Card Watermark Logo */}
             <div className="absolute -bottom-2 -right-2 w-16 h-16 opacity-[0.03] -rotate-12 pointer-events-none group-hover:opacity-[0.05] transition-opacity duration-500">
-              <img src={POLICE_LOGO_URL} alt="" className="w-full h-full object-contain" />
+              <PoliceLogo className="w-full h-full" />
             </div>
 
             <div className={cn("p-4 rounded-2xl mb-4 group-hover:scale-110 transition-transform duration-300 relative z-10", item.color, "dark:bg-slate-900")}>
@@ -683,13 +945,143 @@ const HomePage = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
         transition={{ delay: 0.4 }}
         className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-sm relative overflow-hidden"
       >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-police-navy/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
-        <h3 className="font-black text-police-navy mb-3 flex items-center gap-2">
-          <ShieldCheck size={20} className="text-police-gold" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-vibrant-blue/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
+        <h3 className="font-black text-vibrant-blue mb-3 flex items-center gap-2">
+          <ShieldCheck size={20} className="text-eth-yellow" />
           {t.safetyTip}
         </h3>
         <p className="text-sm text-slate-600 dark:text-slate-400 italic leading-relaxed font-medium">"Always lock your doors and be aware of your surroundings when walking at night."</p>
       </motion.div>
+    </div>
+  );
+};
+
+const NewsPage = ({ news }: { news: any[] }) => {
+  const { t, lang } = useTranslation();
+  return (
+    <div className="p-6 space-y-6">
+      <div className="space-y-1">
+        <h2 className="text-2xl font-black text-slate-800 dark:text-white">{t.newsAlerts}</h2>
+        <p className="text-xs font-bold text-eth-yellow uppercase tracking-widest">{t.officialAnnouncements}</p>
+      </div>
+
+      <div className="space-y-4">
+        {news.map((item) => (
+          <motion.div
+            key={item.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm"
+          >
+            <div className="h-48 relative">
+              <img src={item.image} alt="" className="w-full h-full object-cover" />
+              <div className="absolute top-4 left-4">
+                <span className={cn(
+                  "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg",
+                  item.type === 'alert' ? "bg-eth-red text-white" : 
+                  item.type === 'missing' ? "bg-eth-yellow text-slate-900" : 
+                  "bg-vibrant-blue text-white"
+                )}>
+                  {item.type}
+                </span>
+              </div>
+            </div>
+            <div className="p-6 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.date}</span>
+                <div className="flex gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-eth-green" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-eth-yellow" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-eth-red" />
+                </div>
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white leading-tight">
+                {lang === 'am' ? item.titleAm : item.title}
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                {lang === 'am' ? item.contentAm : item.content}
+              </p>
+              <button className="text-vibrant-blue text-xs font-black uppercase tracking-wider flex items-center gap-2 pt-2">
+                {t.viewDetails} <ChevronRight size={14} />
+              </button>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const StationLocatorPage = ({ stations }: { stations: any[] }) => {
+  const { t, lang } = useTranslation();
+  const [hasPermission, setHasPermission] = useState(false);
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="space-y-1">
+        <h2 className="text-2xl font-black text-slate-800 dark:text-white">{t.stationLocator}</h2>
+        <p className="text-xs font-bold text-eth-green uppercase tracking-widest">{t.findNearestStation}</p>
+      </div>
+
+      {!hasPermission ? (
+        <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-sm text-center space-y-6">
+          <div className="w-20 h-20 bg-eth-green/10 text-eth-green rounded-full flex items-center justify-center mx-auto">
+            <MapPin size={40} />
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-bold text-slate-800 dark:text-white">{t.locationAccess}</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+              {t.locationAccessText}
+            </p>
+          </div>
+          <button 
+            onClick={() => setHasPermission(true)}
+            className="w-full bg-eth-green text-white font-black py-4 rounded-2xl shadow-lg shadow-green-100 active:scale-95 transition-transform"
+          >
+            {t.grantPermission}
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Mock Map View */}
+          <div className="h-64 bg-slate-100 dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-700 relative overflow-hidden">
+            <div className="absolute inset-0 opacity-40">
+              <div className="absolute top-1/4 left-1/3 w-4 h-4 bg-vibrant-blue rounded-full border-2 border-white shadow-lg animate-pulse" />
+              <div className="absolute top-1/2 left-1/2 w-4 h-4 bg-eth-red rounded-full border-2 border-white shadow-lg" />
+              <div className="absolute bottom-1/4 right-1/4 w-4 h-4 bg-eth-red rounded-full border-2 border-white shadow-lg" />
+            </div>
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg border border-white/20">
+              <span className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-widest">Map View (Simulated)</span>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">{t.stationsNearby}</h3>
+            {stations.map((station) => (
+              <motion.div
+                key={station.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center justify-between"
+              >
+                <div className="space-y-1">
+                  <h4 className="font-bold text-slate-800 dark:text-white">{lang === 'am' ? station.nameAm : station.name}</h4>
+                  <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400">
+                    <span className="flex items-center gap-1"><MapPin size={10} className="text-eth-green" /> {station.distance}</span>
+                    <span className="flex items-center gap-1"><Info size={10} /> {station.location}</span>
+                  </div>
+                </div>
+                <a 
+                  href={`tel:${station.phone}`}
+                  className="p-3 bg-vibrant-blue/10 text-vibrant-blue rounded-xl active:scale-90 transition-transform"
+                >
+                  <Phone size={18} />
+                </a>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -718,7 +1110,7 @@ const ContactsPage = () => {
           </div>
           <a 
             href={`tel:${contact.phone}`}
-            className="bg-police-navy text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2"
+            className="bg-vibrant-blue text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2"
           >
             <Phone size={14} />
             {contact.phone}
@@ -862,14 +1254,14 @@ const DashboardPage = ({ onEdit }: { onEdit: (report: CrimeReport) => void }) =>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-slate-800 flex items-center gap-2">
-            <History size={18} className="text-police-navy" />
+            <History size={18} className="text-vibrant-blue" />
             {t.savedReports}
           </h3>
           <button 
             onClick={() => setShowFilters(!showFilters)}
             className={cn(
               "p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold",
-              showFilters ? "bg-police-navy text-white" : "bg-slate-100 text-slate-600"
+              showFilters ? "bg-vibrant-blue text-white" : "bg-slate-100 text-slate-600"
             )}
           >
             <Filter size={14} />
@@ -883,7 +1275,7 @@ const DashboardPage = ({ onEdit }: { onEdit: (report: CrimeReport) => void }) =>
             <input 
               type="text"
               placeholder={t.searchPlaceholder}
-              className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-police-navy/20 focus:border-police-navy outline-none transition-all"
+              className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-vibrant-blue/20 focus:border-vibrant-blue outline-none transition-all"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -909,7 +1301,7 @@ const DashboardPage = ({ onEdit }: { onEdit: (report: CrimeReport) => void }) =>
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">{t.type}</label>
                     <select 
-                      className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3 text-sm outline-none focus:ring-2 focus:ring-police-navy/20"
+                      className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3 text-sm outline-none focus:ring-2 focus:ring-vibrant-blue/20"
                       value={typeFilter}
                       onChange={(e) => setTypeFilter(e.target.value as any)}
                     >
@@ -922,7 +1314,7 @@ const DashboardPage = ({ onEdit }: { onEdit: (report: CrimeReport) => void }) =>
                     <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">{t.date}</label>
                     <input 
                       type="date"
-                      className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3 text-sm outline-none focus:ring-2 focus:ring-police-navy/20"
+                      className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3 text-sm outline-none focus:ring-2 focus:ring-vibrant-blue/20"
                       value={dateFilter}
                       onChange={(e) => setDateFilter(e.target.value)}
                     />
@@ -947,7 +1339,7 @@ const DashboardPage = ({ onEdit }: { onEdit: (report: CrimeReport) => void }) =>
             {(searchQuery || typeFilter !== 'all' || dateFilter) && (
               <button 
                 onClick={clearFilters}
-                className="text-police-navy text-xs font-bold mt-2 underline"
+                className="text-vibrant-blue text-xs font-bold mt-2 underline"
               >
                 {t.clearFiltersToSeeAll}
               </button>
@@ -994,7 +1386,7 @@ const DashboardPage = ({ onEdit }: { onEdit: (report: CrimeReport) => void }) =>
                   )}
                   <button 
                     onClick={() => onEdit(report)}
-                    className="p-2 bg-slate-50 text-slate-400 rounded-lg active:scale-90 transition-transform hover:text-police-navy"
+                    className="p-2 bg-slate-50 text-slate-400 rounded-lg active:scale-90 transition-transform hover:text-vibrant-blue"
                   >
                     <Edit2 size={14} />
                   </button>
@@ -1020,7 +1412,7 @@ const DashboardPage = ({ onEdit }: { onEdit: (report: CrimeReport) => void }) =>
 
               <div className="space-y-1">
                 <div className="flex items-center gap-3 text-[10px] text-slate-500">
-                  <span className="flex items-center gap-1 font-medium text-police-navy"><MapPin size={10} /> {report.location}</span>
+                  <span className="flex items-center gap-1 font-medium text-vibrant-blue"><MapPin size={10} /> {report.location}</span>
                   <span className="flex items-center gap-1"><HomeIcon size={10} /> {report.station}</span>
                 </div>
                 <div className="flex items-center gap-3 text-[10px] text-slate-400 italic">
@@ -1191,13 +1583,29 @@ const ReportForm = ({ type, onBack, onGoHome, initialData }: { type: 'crime' | '
     }
   };
 
-  const onSubmit = (data: ReportFormData) => {
-    if (initialData) {
-      storage.updateReport(initialData.id, data);
-    } else {
-      storage.saveReport({ ...data, type });
+  const onSubmit = async (data: ReportFormData) => {
+    try {
+      const u = await ensureAnonymousAuth();
+      const reportId = initialData?.id || Math.random().toString(36).substring(7);
+      const reportData = {
+        ...data,
+        id: reportId,
+        type,
+        status: initialData?.status || 'pending',
+        timestamp: Timestamp.now(),
+        authorUid: u.uid,
+      };
+
+      await setDoc(doc(db, 'crime_reports', reportId), reportData);
+      
+      setIsSuccess(true);
+      setTimeout(() => {
+        setIsSuccess(false);
+        onGoHome();
+      }, 2000);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'crime_reports');
     }
-    setIsSuccess(true);
   };
 
   if (isSuccess) {
@@ -1239,6 +1647,17 @@ const ReportForm = ({ type, onBack, onGoHome, initialData }: { type: 'crime' | '
 
   return (
     <div className="p-6 space-y-6">
+      {!auth.currentUser && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-2xl flex gap-3">
+          <AlertCircle className="text-amber-500 shrink-0" size={20} />
+          <div className="space-y-1">
+            <p className="text-xs font-bold text-amber-800 dark:text-amber-200 uppercase tracking-wider">Authentication Required</p>
+            <p className="text-[10px] text-amber-700 dark:text-amber-300 leading-relaxed">
+              Anonymous reporting is currently unavailable. Please sign in with Google in the Profile section or contact support.
+            </p>
+          </div>
+        </div>
+      )}
       <div className="flex items-center gap-2 mb-4">
         <button onClick={onBack} className="p-2 -ml-2 text-slate-500 dark:text-slate-400 active:scale-90 transition-transform">
           <ChevronRight className="rotate-180" />
@@ -1442,7 +1861,7 @@ const ReportForm = ({ type, onBack, onGoHome, initialData }: { type: 'crime' | '
         <div className="pt-2">
           <button 
             type="submit"
-            className="w-full bg-police-navy text-white font-bold py-4 rounded-xl shadow-lg active:scale-[0.98] transition-all hover:bg-slate-800 flex items-center justify-center gap-2"
+            className="w-full bg-vibrant-blue text-white font-bold py-4 rounded-xl shadow-lg active:scale-[0.98] transition-all hover:bg-slate-800 flex items-center justify-center gap-2"
           >
             <ShieldAlert size={18} />
             {t.submitReport}
@@ -1462,7 +1881,7 @@ const ServicesPage = () => {
     <div className="p-6 space-y-8">
       <div className="space-y-4">
         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-3">
-          <div className="flex items-center gap-3 text-police-navy">
+          <div className="flex items-center gap-3 text-vibrant-blue">
             <Eye size={24} />
             <h3 className="text-lg font-bold dark:text-white">{t.vision}</h3>
           </div>
@@ -1470,7 +1889,7 @@ const ServicesPage = () => {
         </div>
 
         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-3">
-          <div className="flex items-center gap-3 text-police-navy">
+          <div className="flex items-center gap-3 text-vibrant-blue">
             <Target size={24} />
             <h3 className="text-lg font-bold dark:text-white">{t.mission}</h3>
           </div>
@@ -1478,7 +1897,7 @@ const ServicesPage = () => {
         </div>
 
         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-3">
-          <div className="flex items-center gap-3 text-police-navy">
+          <div className="flex items-center gap-3 text-vibrant-blue">
             <ShieldCheck size={24} />
             <h3 className="text-lg font-bold dark:text-white">{t.values}</h3>
           </div>
@@ -1494,7 +1913,7 @@ const ServicesPage = () => {
 
       <div className="space-y-4">
         <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-          <FileText size={20} className="text-police-navy" />
+          <FileText size={20} className="text-vibrant-blue" />
           {t.serviceStandards}
         </h2>
         <div className="space-y-3">
@@ -1505,7 +1924,7 @@ const ServicesPage = () => {
             { title: 'Forensic Services', titleAm: 'ፎረንሲክ አገልግሎት', desc: 'Scientific investigation and evidence.', icon: Search },
           ].map((service, i) => (
             <div key={i} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex gap-4">
-              <div className="bg-police-navy/5 p-3 rounded-xl text-police-navy h-fit">
+              <div className="bg-vibrant-blue/5 p-3 rounded-xl text-vibrant-blue h-fit">
                 <service.icon size={20} />
               </div>
               <div>
@@ -1520,7 +1939,7 @@ const ServicesPage = () => {
 
       <div className="bg-vibrant-blue text-white p-6 rounded-3xl shadow-lg space-y-4">
         <h3 className="text-lg font-bold flex items-center gap-2">
-          <AlertCircle size={20} className="text-police-gold" />
+          <AlertCircle size={20} className="text-eth-yellow" />
           {t.complaintProcess}
         </h3>
         <div className="space-y-3 text-sm text-white/80">
@@ -1530,14 +1949,14 @@ const ServicesPage = () => {
         </div>
       </div>
 
-      <button className="w-full bg-white border-2 border-police-navy text-police-navy font-bold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform">
+      <button className="w-full bg-white border-2 border-vibrant-blue text-vibrant-blue font-bold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform">
         <Download size={20} />
         {t.downloadPdf}
       </button>
 
       <div className="space-y-4 pt-4">
         <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-          <ShieldCheck size={20} className="text-police-navy" />
+          <ShieldCheck size={20} className="text-vibrant-blue" />
           {t.followUs}
         </h3>
         <div className="grid grid-cols-4 gap-4">
@@ -1576,26 +1995,80 @@ export default function App() {
     return (saved as Theme) || 'police';
   });
 
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [user, setUser] = useState(auth.currentUser);
+  const [news, setNews] = useState<any[]>([]);
+  const [stations, setStations] = useState<any[]>([]);
+
   useEffect(() => {
     localStorage.setItem('police-app-theme', theme);
     const root = document.documentElement;
     if (theme === 'dark') {
       root.classList.add('dark');
-      root.style.setProperty('--color-police-navy', '#0f172a');
-      root.style.setProperty('--color-police-gold', '#fbbf24');
       root.style.setProperty('--color-vibrant-blue', '#1e40af');
+      root.style.setProperty('--color-eth-yellow', '#fbbf24');
     } else if (theme === 'light') {
       root.classList.remove('dark');
-      root.style.setProperty('--color-police-navy', '#1e293b');
-      root.style.setProperty('--color-police-gold', '#b45309');
       root.style.setProperty('--color-vibrant-blue', '#3b82f6');
+      root.style.setProperty('--color-eth-yellow', '#b45309');
     } else {
       root.classList.remove('dark');
-      root.style.setProperty('--color-police-navy', '#002147');
-      root.style.setProperty('--color-police-gold', '#D4AF37');
       root.style.setProperty('--color-vibrant-blue', '#007FFF');
+      root.style.setProperty('--color-eth-yellow', '#D4AF37');
     }
   }, [theme]);
+
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        const u = await ensureAnonymousAuth();
+        setUser(u);
+        setIsAuthReady(true);
+      } catch (error: any) {
+        console.error("Auth initialization failed:", error);
+        if (error.code === 'auth/admin-restricted-operation') {
+          setAuthError(error.message);
+        } else {
+          setAuthError("Authentication failed. Some features may be limited.");
+        }
+        setIsAuthReady(true);
+      }
+    };
+    initAuth();
+
+    const unsubscribe = auth.onAuthStateChanged((u) => {
+      setUser(u);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthReady) return;
+
+    const newsQuery = query(collection(db, 'news_alerts'), orderBy('timestamp', 'desc'));
+    const unsubscribeNews = onSnapshot(newsQuery, (snapshot) => {
+      const newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setNews(newsData.length > 0 ? newsData : MOCK_NEWS);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'news_alerts');
+    });
+
+    const stationsQuery = query(collection(db, 'police_stations'));
+    const unsubscribeStations = onSnapshot(stationsQuery, (snapshot) => {
+      const stationsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setStations(stationsData.length > 0 ? stationsData : MOCK_STATIONS);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'police_stations');
+    });
+
+    return () => {
+      unsubscribeNews();
+      unsubscribeStations();
+    };
+  }, [isAuthReady]);
+
   const [currentPage, setCurrentPage] = useState('home');
   const [editingReport, setEditingReport] = useState<CrimeReport | null>(null);
   const [lang, setLang] = useState<Language>('en');
@@ -1604,7 +2077,9 @@ export default function App() {
 
   const renderContent = () => {
     switch (currentPage) {
-      case 'home': return <HomePage onNavigate={setCurrentPage} />;
+      case 'home': return <HomePage onNavigate={setCurrentPage} news={news} />;
+      case 'news': return <NewsPage news={news} />;
+      case 'station-locator': return <StationLocatorPage stations={stations} />;
       case 'contacts': return <ContactsPage />;
       case 'dashboard': return (
         <DashboardPage 
@@ -1633,10 +2108,11 @@ export default function App() {
       case 'services': return <ServicesPage />;
       case 'qr': return <QRScannerPage onBack={() => setCurrentPage('home')} />;
       case 'help': return <HelpPage onBack={() => setCurrentPage('home')} />;
+      case 'privacy': return <PrivacySecurityPage onBack={() => setCurrentPage('menu')} />;
       case 'about': return <AboutPage onBack={() => setCurrentPage('home')} />;
       case 'profile': return <ProfilePage />;
       case 'menu': return <MenuPage onNavigate={setCurrentPage} />;
-      default: return <HomePage onNavigate={setCurrentPage} />;
+      default: return <HomePage onNavigate={setCurrentPage} news={news} />;
     }
   };
 
@@ -1655,78 +2131,101 @@ export default function App() {
   }, [currentPage]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
-      <LanguageContext.Provider value={{ lang, setLang, t }}>
-        <div className={cn(
-          "mobile-container pb-24",
-          theme === 'dark' ? "bg-slate-950" : "bg-slate-50"
-        )}>
-        {/* Floating Decorative Logos */}
-        <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-          <div className="absolute top-1/4 -left-10 w-32 h-32 opacity-[0.02] rotate-12">
-            <img src={POLICE_LOGO_URL} alt="" className="w-full h-full object-contain" />
+    <ErrorBoundary>
+      <ThemeContext.Provider value={{ theme, setTheme }}>
+        <LanguageContext.Provider value={{ lang, setLang, t }}>
+          <div className={cn(
+            "mobile-container pb-24",
+            theme === 'dark' ? "bg-slate-950" : "bg-slate-50"
+          )}>
+            {authError && (
+              <div className="bg-amber-500 text-white p-4 text-[10px] font-bold text-center relative z-[100]">
+                <div className="flex flex-col items-center gap-2">
+                  <p>{authError}</p>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => window.open('https://console.firebase.google.com/', '_blank')}
+                      className="bg-white text-amber-600 px-3 py-1 rounded-full uppercase tracking-widest hover:bg-amber-50 transition-colors"
+                    >
+                      Open Console
+                    </button>
+                    <button 
+                      onClick={() => setAuthError(null)}
+                      className="bg-amber-600 text-white px-3 py-1 rounded-full uppercase tracking-widest hover:bg-amber-700 transition-colors"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          {/* Floating Decorative Logos */}
+          <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+            <div className="absolute top-1/4 -left-10 w-32 h-32 opacity-[0.02] rotate-12">
+              <img src={POLICE_LOGO_URL} alt="" className="w-full h-full object-contain" />
+            </div>
+            <div className="absolute bottom-1/4 -right-10 w-40 h-40 opacity-[0.02] -rotate-12">
+              <img src={POLICE_LOGO_URL} alt="" className="w-full h-full object-contain" />
+            </div>
           </div>
-          <div className="absolute bottom-1/4 -right-10 w-40 h-40 opacity-[0.02] -rotate-12">
-            <img src={POLICE_LOGO_URL} alt="" className="w-full h-full object-contain" />
-          </div>
+
+          <Header 
+            title="West Gojjam Zone Police" 
+            subtitle="ምዕራብ ጎጃም ዞን ፖሊስ" 
+          />
+          
+          <nav className="sticky top-0 w-full bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-6 py-3 flex justify-between items-center z-40 shadow-sm">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setCurrentPage(tab.id);
+                }}
+                className={cn(
+                  "flex flex-col items-center gap-1 transition-colors",
+                  activeTab === tab.id ? "text-vibrant-blue" : "text-slate-400 dark:text-slate-500"
+                )}
+              >
+                <tab.icon size={20} strokeWidth={activeTab === tab.id ? 2.5 : 2} />
+                <span className="text-[10px] font-bold uppercase tracking-wider">{tab.label}</span>
+                {activeTab === tab.id && (
+                  <motion.div 
+                    layoutId="activeTab"
+                    className="w-1 h-1 bg-eth-yellow rounded-full"
+                  />
+                )}
+              </button>
+            ))}
+          </nav>
+
+          <main className="flex-1 overflow-y-auto">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentPage}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                {renderContent()}
+              </motion.div>
+            </AnimatePresence>
+
+            <footer className="mt-12 pb-8 px-6 text-center space-y-1">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                {t.developedBy}
+              </p>
+              <p className="text-[9px] font-medium text-slate-300">
+                {t.buildDate}
+              </p>
+            </footer>
+          </main>
+
+          <EmergencyButton />
         </div>
-
-        <Header 
-          title="West Gojjam Zone Police" 
-          subtitle="ምዕራብ ጎጃም ዞን ፖሊስ" 
-        />
-        
-        <nav className="sticky top-0 w-full bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-6 py-3 flex justify-between items-center z-40 shadow-sm">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id);
-                setCurrentPage(tab.id);
-              }}
-              className={cn(
-                "flex flex-col items-center gap-1 transition-colors",
-                activeTab === tab.id ? "text-vibrant-blue" : "text-slate-400 dark:text-slate-500"
-              )}
-            >
-              <tab.icon size={20} strokeWidth={activeTab === tab.id ? 2.5 : 2} />
-              <span className="text-[10px] font-bold uppercase tracking-wider">{tab.label}</span>
-              {activeTab === tab.id && (
-                <motion.div 
-                  layoutId="activeTab"
-                  className="w-1 h-1 bg-eth-yellow rounded-full"
-                />
-              )}
-            </button>
-          ))}
-        </nav>
-
-        <main className="flex-1 overflow-y-auto">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentPage}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              {renderContent()}
-            </motion.div>
-          </AnimatePresence>
-
-          <footer className="mt-12 pb-8 px-6 text-center space-y-1">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              {t.developedBy}
-            </p>
-            <p className="text-[9px] font-medium text-slate-300">
-              {t.buildDate}
-            </p>
-          </footer>
-        </main>
-
-        <EmergencyButton />
-      </div>
-      </LanguageContext.Provider>
-    </ThemeContext.Provider>
+        </LanguageContext.Provider>
+      </ThemeContext.Provider>
+    </ErrorBoundary>
   );
 }
