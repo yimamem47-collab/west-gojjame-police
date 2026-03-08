@@ -96,8 +96,13 @@ export function Layout({ children, activeTab, setActiveTab, onLogout, userName, 
         <div className="h-full flex flex-col p-6">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-brand-accent rounded-lg flex items-center justify-center">
-                <Shield size={20} className="text-brand-bg" />
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-brand-accent">
+                <img 
+                  src="https://lh3.googleusercontent.com/u/0/d/1Cs0lYh3PD1lR_cQH4lET3GRUYRF11Z6i" 
+                  alt="Logo" 
+                  className="w-full h-full object-cover rounded-full"
+                  referrerPolicy="no-referrer"
+                />
               </div>
               <span className="text-xl font-bold tracking-tight">WG Police</span>
             </div>
@@ -149,6 +154,11 @@ export function Layout({ children, activeTab, setActiveTab, onLogout, userName, 
                 <p className="text-sm font-bold truncate">{userName}</p>
                 <p className="text-xs text-brand-text-secondary truncate">{t.officerAccount}</p>
               </div>
+            </div>
+            <div className="px-4 py-2 border-t border-brand-border/50">
+              <p className="text-[10px] font-bold text-brand-accent/70 leading-tight">
+                ዲቨሎፕ ባይ ዋና ሳጅን መንገሻ ይማም አበራ / Developed by Chief Sergeant Mengesha Yimam Abera
+              </p>
             </div>
             <button
               onClick={onLogout}

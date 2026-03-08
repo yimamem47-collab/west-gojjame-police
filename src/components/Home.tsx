@@ -20,8 +20,13 @@ export function Home({ onLogin, onSignup, onReport, lang, setLang }: HomeProps) 
       <nav className="fixed top-0 w-full z-50 bg-brand-bg/80 backdrop-blur-md border-b border-brand-border">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-brand-accent rounded-lg flex items-center justify-center">
-              <Shield size={20} className="text-white" />
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-brand-accent shadow-sm">
+              <img 
+                src="https://lh3.googleusercontent.com/u/0/d/1Cs0lYh3PD1lR_cQH4lET3GRUYRF11Z6i" 
+                alt="Logo" 
+                className="w-full h-full object-cover rounded-full"
+                referrerPolicy="no-referrer"
+              />
             </div>
             <span className="text-xl font-bold tracking-tight">WG Police</span>
           </div>
@@ -66,6 +71,9 @@ export function Home({ onLogin, onSignup, onReport, lang, setLang }: HomeProps) 
               West Gojjam Zone <br />
               <span className="text-brand-accent">Police Department</span>
             </h1>
+            <p className="text-2xl font-bold text-brand-accent mb-6 italic">
+              "በጀግንነት መጠበቅ በሰባዊነት ማገልገል"
+            </p>
             <p className="text-xl text-brand-text-secondary max-w-2xl mx-auto mb-10">
               A secure, unified platform for incident reporting, officer management, and zone-wide coordination.
             </p>
@@ -147,11 +155,13 @@ export function Home({ onLogin, onSignup, onReport, lang, setLang }: HomeProps) 
             <Shield size={20} className="text-brand-accent" />
             <span className="text-lg font-bold text-brand-text-primary">WG Police</span>
           </div>
-          <p className="text-sm">© 2024 West Gojjam Zone Police Department. All rights reserved.</p>
+          <p className="text-sm">© 2024 West Gojjam Zone Police Department. All rights reserved. ዲቨሎፕ ባይ ዋና ሳጅን መንገሻ ይማም አበራ / Developed by Chief Sergeant Mengesha Yimam Abera</p>
           <div className="flex gap-6 text-sm">
-            <a href="#" className="hover:text-brand-text-primary">Privacy Policy</a>
-            <a href="#" className="hover:text-brand-text-primary">Terms of Service</a>
-            <a href="#" className="hover:text-brand-text-primary">Contact Support</a>
+            <a href="https://www.facebook.com/share/1CCxnhaNmX/" target="_blank" rel="noopener noreferrer" className="hover:text-brand-text-primary">Facebook</a>
+            <a href="https://t.me/westgojjamepolice" target="_blank" rel="noopener noreferrer" className="hover:text-brand-text-primary">Telegram</a>
+          </div>
+          <div className="text-center md:text-right">
+            <p className="text-xs font-bold text-brand-accent">ዲቨሎፕ ባይ ዋና ሳጅን መንገሻ ይማም አበራ / Developed by Chief Sergeant Mengesha Yimam Abera</p>
           </div>
         </div>
       </footer>

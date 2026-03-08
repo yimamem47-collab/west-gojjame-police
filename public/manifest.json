@@ -1,23 +1,25 @@
 {
-  "name": "West Gojjam Zone Police",
-  "short_name": "WGZ Police",
-  "description": "Official application for West Gojjam Zone Police Department",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#0a192f",
-  "theme_color": "#0a192f",
+  "short_name": "WGP Police",
+  "name": "West Gojjam Zone Police Application",
   "icons": [
     {
-      "src": "https://files.oaiusercontent.com/file-67c70697771c4997973700",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "https://lh3.googleusercontent.com/u/0/d/1Cs0lYh3PD1lR_cQH4lET3GRUYRF11Z6i",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/jpeg"
     },
     {
-      "src": "https://files.oaiusercontent.com/file-67c70697771c4997973700",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "https://lh3.googleusercontent.com/u/0/d/1Cs0lYh3PD1lR_cQH4lET3GRUYRF11Z6i",
+      "type": "image/jpeg",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://lh3.googleusercontent.com/u/0/d/1Cs0lYh3PD1lR_cQH4lET3GRUYRF11Z6i",
+      "type": "image/jpeg",
+      "sizes": "512x512"
     }
-  ]
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#002B5B",
+  "background_color": "#002B5B"
 }

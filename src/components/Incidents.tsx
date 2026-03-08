@@ -294,14 +294,17 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.filingStation}</label>
-                  <input 
+                  <select 
                     required
-                    type="text" 
-                    className="input-field" 
-                    placeholder={t.stationPlaceholder}
+                    className="input-field"
                     value={newIncident.filingStation}
                     onChange={(e) => setNewIncident({...newIncident, filingStation: e.target.value})}
-                  />
+                  >
+                    <option value="">{t.stationPlaceholder}</option>
+                    {Object.entries(t.stations).map(([key, label]) => (
+                      <option key={key} value={label as string}>{label as string}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.date}</label>
@@ -317,24 +320,28 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.officerName}</label>
-                  <input 
-                    required
-                    type="text" 
-                    className="input-field" 
-                    value={newIncident.recordingOfficerName}
-                    onChange={(e) => setNewIncident({...newIncident, recordingOfficerName: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.officerRank}</label>
+                  <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.recordingOfficer}</label>
                   <select 
+                    required
                     className="input-field"
-                    value={newIncident.recordingOfficerRank}
-                    onChange={(e) => setNewIncident({...newIncident, recordingOfficerRank: e.target.value})}
+                    value={newIncident.officerId}
+                    onChange={(e) => {
+                      const selectedOfficer = officers.find(o => o.id === e.target.value);
+                      if (selectedOfficer) {
+                        setNewIncident({
+                          ...newIncident, 
+                          officerId: selectedOfficer.id,
+                          recordingOfficerName: selectedOfficer.name,
+                          recordingOfficerRank: selectedOfficer.rank
+                        });
+                      }
+                    }}
                   >
-                    {Object.entries(t.ranks).map(([key, label]) => (
-                      <option key={key} value={key}>{label as string}</option>
+                    <option value="">Select Officer</option>
+                    {officers.map((officer) => (
+                      <option key={officer.id} value={officer.id}>
+                        {officer.name} ({(t.ranks as any)[officer.rank] || officer.rank})
+                      </option>
                     ))}
                   </select>
                 </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Shield, MapPin, Calendar, Clock, FileText, Send, X, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, translations } from '../lib/translations';
+import { auth } from '../firebase';
 
 interface CitizenReportProps {
   type: 'Crime' | 'Traffic';
@@ -19,7 +20,8 @@ export function CitizenReport({ type, lang, onClose, onSubmit }: CitizenReportPr
     date: new Date().toISOString().split('T')[0],
     time: new Date().toTimeString().slice(0, 5),
     description: '',
-    category: 'other'
+    category: 'other',
+    filingStation: ''
   });
 
   const categories = type === 'Crime' ? t.categories.crime : t.categories.traffic;
@@ -30,10 +32,9 @@ export function CitizenReport({ type, lang, onClose, onSubmit }: CitizenReportPr
       ...formData,
       type,
       status: 'Open',
-      officerId: 'citizen', // Mark as citizen report
-      recordingOfficerName: 'Citizen',
-      recordingOfficerRank: 'citizen',
-      filingStation: 'Online Portal'
+      officerId: auth.currentUser?.uid || 'citizen', // Mark as citizen report
+      recordingOfficerName: auth.currentUser?.displayName || 'Citizen',
+      recordingOfficerRank: 'citizen'
     });
     setStep('success');
     setTimeout(() => {
@@ -113,6 +114,20 @@ export function CitizenReport({ type, lang, onClose, onSubmit }: CitizenReportPr
                         onChange={(e) => setFormData({...formData, location: e.target.value})}
                       />
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.filingStation}</label>
+                    <select 
+                      required
+                      className="input-field"
+                      value={formData.filingStation}
+                      onChange={(e) => setFormData({...formData, filingStation: e.target.value})}
+                    >
+                      <option value="">{t.stationPlaceholder}</option>
+                      {Object.entries(t.stations).map(([key, label]) => (
+                        <option key={key} value={label as string}>{label as string}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>

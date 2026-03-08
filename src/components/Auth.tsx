@@ -9,6 +9,7 @@ import {
   updateProfile,
   signInWithPopup
 } from 'firebase/auth';
+import { sendTelegramMessage } from '../services/telegramService';
 
 interface AuthProps {
   type: 'login' | 'signup';
@@ -40,6 +41,10 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
         await updateProfile(userCredential.user, {
           displayName: formData.name
         });
+        
+        // Send Telegram notification for new signup
+        await sendTelegramMessage(`👤 <b>New Officer Registered</b>\n---------------------------\n<b>Name:</b> ${formData.name}\n<b>Email:</b> ${formData.email}\n<b>Badge:</b> ${formData.badgeNumber}`);
+
         onSuccess({
           name: formData.name,
           email: formData.email
@@ -81,25 +86,25 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
   };
 
   return (
-    <div className="min-h-screen bg-brand-bg flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-[#002B5B] flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-brand-accent/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-brand-accent/10 rounded-full blur-3xl" />
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#FFD700]/5 rounded-full blur-3xl" />
+        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-[#FFD700]/5 rounded-full blur-3xl" />
       </div>
 
       <div className="w-full max-w-md relative z-10">
-        <div className="flex justify-center mb-8">
-          <div className="flex bg-brand-bg/80 backdrop-blur-md p-1 rounded-xl border border-brand-border">
+        <div className="flex justify-center mb-6">
+          <div className="flex bg-white/10 backdrop-blur-md p-1 rounded-xl border border-white/20">
             <button 
               onClick={() => onLanguageChange('en')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === 'en' ? 'bg-brand-accent text-white shadow-lg shadow-brand-accent/20' : 'text-brand-text-secondary hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === 'en' ? 'bg-[#FFD700] text-[#002B5B] shadow-lg shadow-[#FFD700]/20' : 'text-white/60 hover:text-white'}`}
             >
               EN
             </button>
             <button 
               onClick={() => onLanguageChange('am')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === 'am' ? 'bg-brand-accent text-white shadow-lg shadow-brand-accent/20' : 'text-brand-text-secondary hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === 'am' ? 'bg-[#FFD700] text-[#002B5B] shadow-lg shadow-[#FFD700]/20' : 'text-white/60 hover:text-white'}`}
             >
               AM
             </button>
@@ -107,13 +112,24 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
         </div>
 
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-accent rounded-2xl mb-4 shadow-lg shadow-brand-accent/20">
-            <Shield size={32} className="text-white" />
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2">
-            {type === 'login' ? t.loginTitle : t.signupTitle}
+            <div className="inline-flex items-center justify-center w-[150px] h-[150px] bg-[#002B5B] rounded-full mb-4 shadow-xl border-[3px] border-[#003366] overflow-hidden">
+              <img 
+                src="https://lh3.googleusercontent.com/u/0/d/1Cs0lYh3PD1lR_cQH4lET3GRUYRF11Z6i" 
+                alt="የምዕራብ ጎጃም ዞን ፖሊስ አርማ" 
+                className="w-full h-full object-cover rounded-full"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          <h1 className="text-2xl font-bold tracking-tight mb-1 text-white">
+            የምዕራብ ጎጃም ዞን ፖሊስ መተግበሪያ
           </h1>
-          <p className="text-brand-text-secondary">
+          <p className="text-[#FFD700] font-bold text-lg mb-4 italic">
+            "በጀግንነት መጠበቅ በሰባዊነት ማገልገል"
+          </p>
+          <h2 className="text-lg font-medium text-[#FFD700] mb-2">
+            {type === 'login' ? t.loginTitle : t.signupTitle}
+          </h2>
+          <p className="text-white/60 text-sm">
             {type === 'login' 
               ? 'Access the West Gojjam Zone Police system.' 
               : 'Register your officer account for the department.'}
@@ -123,10 +139,10 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-8"
+          className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl"
         >
           {error && (
-            <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center gap-3 text-rose-400 text-sm">
+            <div className="mb-6 p-4 bg-rose-500/20 border border-rose-500/30 rounded-xl flex items-center gap-3 text-rose-200 text-sm">
               <AlertCircle size={18} />
               {error}
             </div>
@@ -135,13 +151,13 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
             {type === 'signup' && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-brand-text-secondary mb-2">Full Name</label>
+                  <label className="block text-sm font-medium text-white/70 mb-2">Full Name</label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-text-secondary" size={18} />
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={18} />
                     <input
                       required
                       type="text"
-                      className="input-field pl-10"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50 transition-all"
                       placeholder="Enter your full name"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -149,13 +165,13 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-brand-text-secondary mb-2">Badge Number</label>
+                  <label className="block text-sm font-medium text-white/70 mb-2">Badge Number</label>
                   <div className="relative">
-                    <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-text-secondary" size={18} />
+                    <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={18} />
                     <input
                       required
                       type="text"
-                      className="input-field pl-10"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50 transition-all"
                       placeholder="WG-XXXX"
                       value={formData.badgeNumber}
                       onChange={(e) => setFormData({ ...formData, badgeNumber: e.target.value })}
@@ -165,13 +181,13 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
               </>
             )}
             <div>
-              <label className="block text-sm font-medium text-brand-text-secondary mb-2">Official Email</label>
+              <label className="block text-sm font-medium text-white/70 mb-2">Official Email</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-text-secondary" size={18} />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={18} />
                 <input
                   required
                   type="email"
-                  className="input-field pl-10"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50 transition-all"
                   placeholder="name@wgpolice.gov.et"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -179,13 +195,13 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-brand-text-secondary mb-2">Password</label>
+              <label className="block text-sm font-medium text-white/70 mb-2">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-text-secondary" size={18} />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={18} />
                 <input
                   required
                   type="password"
-                  className="input-field pl-10"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50 transition-all"
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -196,7 +212,7 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
             <button 
               type="submit" 
               disabled={loading}
-              className="btn-primary w-full py-3 text-lg mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[#FFD700] text-[#002B5B] py-3 rounded-xl font-bold text-lg mt-4 flex items-center justify-center gap-2 hover:bg-[#FFD700]/90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#FFD700]/20"
             >
               {loading ? (
                 <Loader2 className="animate-spin" size={20} />
@@ -211,17 +227,17 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
 
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-brand-border"></div>
+              <div className="w-full border-t border-white/10"></div>
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-brand-bg px-2 text-brand-text-secondary">Or continue with</span>
+              <span className="bg-[#002B5B] px-2 text-white/40">Or continue with</span>
             </div>
           </div>
 
           <button
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-brand-border bg-white/5 hover:bg-white/10 transition-all font-medium disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white transition-all font-medium disabled:opacity-50"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -244,12 +260,12 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
             Google
           </button>
 
-          <div className="mt-8 pt-6 border-t border-brand-border text-center">
-            <p className="text-brand-text-secondary text-sm">
+          <div className="mt-8 pt-6 border-t border-white/10 text-center">
+            <p className="text-white/60 text-sm">
               {type === 'login' ? "Don't have an account?" : "Already have an account?"}
               <button
                 onClick={onSwitch}
-                className="ml-2 text-brand-accent font-bold hover:underline"
+                className="ml-2 text-[#FFD700] font-bold hover:underline"
               >
                 {type === 'login' ? 'Register here' : 'Sign in here'}
               </button>
@@ -257,7 +273,7 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
           </div>
         </motion.div>
 
-        <p className="mt-8 text-center text-xs text-brand-text-secondary">
+        <p className="mt-8 text-center text-xs text-white/40">
           Authorized personnel only. All access is monitored and logged.
         </p>
       </div>

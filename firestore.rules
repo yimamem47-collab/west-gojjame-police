@@ -11,7 +11,8 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (request.auth.token.email == "Yimamem47@gmail.com" && request.auth.token.get('email_verified', false) == true);
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin' ||
+         (request.auth.token.email == "Yimamem47@gmail.com" && request.auth.token.get('email_verified', false) == true));
     }
 
     function isOwner(userId) {
@@ -23,7 +24,10 @@ service cloud.firestore {
     }
 
     function isValidDateString(dateStr) {
-      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+      return dateStr is string && (
+        dateStr.matches("^\\d{4}-\\d{2}-\\d{2}$") ||
+        dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$")
+      );
     }
 
     // ===============================================================
@@ -45,7 +49,7 @@ service cloud.firestore {
              data.status in ['Open', 'In Progress', 'Closed'] &&
              isValidDateString(data.date) &&
              data.location is string && data.location.size() > 0 && data.location.size() < 200 &&
-             data.officerId == request.auth.uid &&
+             (data.officerId == request.auth.uid || data.officerId == 'citizen' || isAdmin()) &&
              data.type in ['Crime', 'Traffic'] &&
              data.category is string && data.category.size() > 0 && data.category.size() < 100;
     }
@@ -91,31 +95,31 @@ service cloud.firestore {
     }
 
     match /incidents/{incidentId} {
-      allow read: if isAuthenticated() && resource.data.officerId == request.auth.uid;
-      allow create: if isAuthenticated() && isValidIncident(request.resource.data) && request.resource.data.officerId == request.auth.uid;
-      allow update: if isAuthenticated() && isValidIncident(request.resource.data) && resource.data.officerId == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.officerId == request.auth.uid;
+      allow read: if isAuthenticated() && (resource.data.officerId == request.auth.uid || isAdmin());
+      allow create: if (isAuthenticated() || request.resource.data.officerId == 'citizen') && isValidIncident(request.resource.data);
+      allow update: if isAuthenticated() && isValidIncident(request.resource.data) && (resource.data.officerId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.officerId == request.auth.uid || isAdmin());
     }
 
     match /officers/{officerId} {
-      allow read: if isAuthenticated() && officerId == request.auth.uid;
-      allow create: if isAuthenticated() && isValidOfficer(request.resource.data) && officerId == request.auth.uid;
-      allow update: if isAuthenticated() && isValidOfficer(request.resource.data) && officerId == request.auth.uid;
-      allow delete: if false;
+      allow read: if isAuthenticated() && (officerId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidOfficer(request.resource.data) && (officerId == request.auth.uid || isAdmin());
+      allow update: if isAuthenticated() && isValidOfficer(request.resource.data) && (officerId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
     }
 
     match /assignments/{assignmentId} {
-      allow read: if isAuthenticated() && resource.data.officerId == request.auth.uid;
-      allow create: if isAuthenticated() && isValidAssignment(request.resource.data) && request.resource.data.officerId == request.auth.uid;
-      allow update: if isAuthenticated() && isValidAssignment(request.resource.data) && resource.data.officerId == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.officerId == request.auth.uid;
+      allow read: if isAuthenticated() && (resource.data.officerId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidAssignment(request.resource.data) && (request.resource.data.officerId == request.auth.uid || isAdmin());
+      allow update: if isAuthenticated() && isValidAssignment(request.resource.data) && (resource.data.officerId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.officerId == request.auth.uid || isAdmin());
     }
 
     match /reports/{reportId} {
-      allow read: if isAuthenticated() && resource.data.officerId == request.auth.uid;
-      allow create: if isAuthenticated() && isValidReport(request.resource.data) && request.resource.data.officerId == request.auth.uid;
-      allow update: if isAuthenticated() && isValidReport(request.resource.data) && resource.data.officerId == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.officerId == request.auth.uid;
+      allow read: if isAuthenticated() && (resource.data.officerId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidReport(request.resource.data) && (request.resource.data.officerId == request.auth.uid || isAdmin());
+      allow update: if isAuthenticated() && isValidReport(request.resource.data) && (resource.data.officerId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.officerId == request.auth.uid || isAdmin());
     }
 
     // Default deny

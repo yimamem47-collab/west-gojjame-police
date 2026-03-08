@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { User, Mail, Shield, Bell, Palette } from 'lucide-react';
+import { User, Mail, Shield, Bell, Palette, Send, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { User as UserType } from '../types';
 import { motion } from 'motion/react';
 import { Language, translations } from '../lib/translations';
+import { sendTelegramMessage } from '../services/telegramService';
 
 interface SettingsProps {
   user: UserType | null;
@@ -19,6 +20,8 @@ export function Settings({ user, lang, onUpdate }: SettingsProps) {
 
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +34,20 @@ export function Settings({ user, lang, onUpdate }: SettingsProps) {
       console.error('Failed to update profile:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTestTelegram = async () => {
+    setTestLoading(true);
+    setTestResult(null);
+    try {
+      const success = await sendTelegramMessage('<b>Test Connection</b>\nThis is a test message from the West Gojjam Zone Police Application.');
+      setTestResult(success ? 'success' : 'error');
+      setTimeout(() => setTestResult(null), 5000);
+    } catch (error) {
+      setTestResult('error');
+    } finally {
+      setTestLoading(false);
     }
   };
 
@@ -110,6 +127,42 @@ export function Settings({ user, lang, onUpdate }: SettingsProps) {
                   <p className="text-sm text-brand-text-secondary">Update your password regularly to stay secure.</p>
                 </div>
                 <button className="text-brand-accent font-bold text-sm">Update</button>
+              </div>
+            </div>
+          </div>
+
+          <div className="glass-card p-8 border-brand-accent/20">
+            <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+              <Send size={20} className="text-brand-accent" />
+              Telegram Integration
+            </h3>
+            <div className="space-y-4">
+              <div className="p-4 bg-brand-bg/30 border border-brand-border rounded-xl">
+                <p className="text-sm text-brand-text-secondary mb-4">
+                  Test the connection to your Telegram group. This will send a test message using the configured Bot Token and Chat ID.
+                </p>
+                <div className="flex items-center gap-4">
+                  <button 
+                    onClick={handleTestTelegram}
+                    disabled={testLoading}
+                    className="btn-primary py-2 px-4 text-sm flex items-center gap-2"
+                  >
+                    {testLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send size={16} />}
+                    Test Connection
+                  </button>
+                  {testResult === 'success' && (
+                    <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
+                      <CheckCircle2 size={16} />
+                      Connected Successfully!
+                    </div>
+                  )}
+                  {testResult === 'error' && (
+                    <div className="flex items-center gap-2 text-rose-400 text-sm font-medium">
+                      <XCircle size={16} />
+                      Connection Failed
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

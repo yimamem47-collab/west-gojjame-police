@@ -192,13 +192,17 @@ export function Officers({ officers, lang, onAdd, onUpdate, onDelete }: Officers
               </div>
               <div>
                 <label className="block text-sm font-medium text-brand-text-secondary mb-2">Station</label>
-                <input 
+                <select 
                   required
-                  type="text" 
-                  className="input-field" 
+                  className="input-field"
                   value={newOfficer.station}
                   onChange={(e) => setNewOfficer({...newOfficer, station: e.target.value})}
-                />
+                >
+                  <option value="">Select Station</option>
+                  {Object.entries(t.stations).map(([key, label]) => (
+                    <option key={key} value={label as string}>{label as string}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-brand-text-secondary mb-2">Phone</label>

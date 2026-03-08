@@ -180,6 +180,22 @@ export const translations = {
     incidentTrends: 'Incident Trends (Weekly)',
     reportedIncidents: 'Reported Incidents',
     officerAccount: 'Officer Account',
+    stations: {
+      finoteSelamCity: 'Finote Selam Town',
+      finoteSelam1st: 'Finote Selam 1st Station',
+      jabiTehnan: 'Jabi Tehnan Woreda',
+      bureCity: 'Bure Town',
+      bureZuria: 'Bure Zuria',
+      kuchCity: 'Kuch Town',
+      shindiCity: 'Shindi Town',
+      sekalWoreda: 'Sekal Woreda',
+      quarit: 'Quarit',
+      degaDamot: 'Dega Damot Woreda',
+      dembechaCity: 'Dembecha Town',
+      dembechaZuria: 'Dembecha Zuria',
+      jigaCity: 'Jiga Town',
+      jigaZuria: 'Jiga Zuria'
+    },
     categories: {
       crime: {
         theft: 'Theft',
@@ -388,6 +404,22 @@ export const translations = {
     incidentTrends: 'የክስተቶች ሁኔታ (ሳምንታዊ)',
     reportedIncidents: 'የተመዘገቡ ክስተቶች',
     officerAccount: 'የኦፊሰር አካውንት',
+    stations: {
+      finoteSelamCity: 'ፍኖተ ሰላም ከተማ',
+      finoteSelam1st: 'ፍኖተ ሰላም አንደኛ ጣቢያ',
+      jabiTehnan: 'ጃቢጠህናን ወረዳ',
+      bureCity: 'ቡሬ ከተማ',
+      bureZuria: 'ቡሬ ዙሪያ',
+      kuchCity: 'ቁጭ ከተማ',
+      shindiCity: 'ሽንዲ ከተማ',
+      sekalWoreda: 'ሰካል ወረዳ',
+      quarit: 'ቋሪት',
+      degaDamot: 'ደጋ ዳሞት ወረዳ',
+      dembechaCity: 'ደምበጫ ከተማ',
+      dembechaZuria: 'ደምበጫ ዙሪያ',
+      jigaCity: 'ጅጋ ከተማ',
+      jigaZuria: 'ጅጋ ዙሪያ'
+    },
     categories: {
       crime: {
         theft: 'የስርቆት ወንጀል',

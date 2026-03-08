@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Incident, Officer, Assignment, Report, User } from '../types';
 import { INITIAL_OFFICERS, INITIAL_INCIDENTS, INITIAL_ASSIGNMENTS, INITIAL_REPORTS } from '../constants';
 import { db } from '../firebase';
+import { sendTelegramMessage, formatIncidentMessage, formatOfficerMessage, formatAssignmentMessage } from '../services/telegramService';
 import { 
   collection, 
   onSnapshot, 
@@ -126,8 +127,10 @@ export function useAppData() {
   const addOfficer = async (officer: Omit<Officer, 'id'>) => {
     const id = Math.random().toString(36).substr(2, 9);
     const path = `officers/${id}`;
+    const newOfficer = { ...officer, id };
     try {
-      await setDoc(doc(db, 'officers', id), { ...officer, id });
+      await setDoc(doc(db, 'officers', id), newOfficer);
+      await sendTelegramMessage(formatOfficerMessage(newOfficer));
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, path);
     }
@@ -137,6 +140,10 @@ export function useAppData() {
     const path = `officers/${id}`;
     try {
       await updateDoc(doc(db, 'officers', id), updates);
+      const updatedOfficer = officers.find(o => o.id === id);
+      if (updatedOfficer) {
+        await sendTelegramMessage(formatOfficerMessage({ ...updatedOfficer, ...updates }, true));
+      }
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, path);
     }
@@ -152,12 +159,22 @@ export function useAppData() {
   };
 
   const addIncident = async (incident: Omit<Incident, 'id'>) => {
+    console.log('addIncident called with:', incident);
     const id = Math.random().toString(36).substr(2, 9);
     const path = `incidents/${id}`;
     const officerId = user?.id || incident.officerId || '';
+    const newIncident = { ...incident, id, officerId };
     try {
-      await setDoc(doc(db, 'incidents', id), { ...incident, id, officerId });
+      console.log('Attempting to save incident to Firestore at path:', path);
+      await setDoc(doc(db, 'incidents', id), newIncident);
+      console.log('Incident saved to Firestore successfully');
+      
+      // Send Telegram notification
+      console.log('Attempting to send Telegram notification...');
+      const telegramResult = await sendTelegramMessage(formatIncidentMessage(newIncident, 'Incident'));
+      console.log('Telegram notification result:', telegramResult);
     } catch (err) {
+      console.error('Error in addIncident:', err);
       handleFirestoreError(err, OperationType.CREATE, path);
     }
   };
@@ -166,6 +183,10 @@ export function useAppData() {
     const path = `incidents/${id}`;
     try {
       await updateDoc(doc(db, 'incidents', id), updates);
+      const updatedIncident = incidents.find(i => i.id === id);
+      if (updatedIncident) {
+        await sendTelegramMessage(formatIncidentMessage({ ...updatedIncident, ...updates }, 'Incident', true));
+      }
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, path);
     }
@@ -181,12 +202,22 @@ export function useAppData() {
   };
 
   const addAssignment = async (assignment: Omit<Assignment, 'id'>) => {
+    console.log('addAssignment called with:', assignment);
     const id = Math.random().toString(36).substr(2, 9);
     const path = `assignments/${id}`;
     const officerId = user?.id || assignment.officerId || '';
+    const newAssignment = { ...assignment, id, officerId };
     try {
-      await setDoc(doc(db, 'assignments', id), { ...assignment, id, officerId });
+      console.log('Attempting to save assignment to Firestore at path:', path);
+      await setDoc(doc(db, 'assignments', id), newAssignment);
+      console.log('Assignment saved to Firestore successfully');
+      
+      // Send Telegram notification
+      console.log('Attempting to send Telegram notification...');
+      const telegramResult = await sendTelegramMessage(formatAssignmentMessage(newAssignment));
+      console.log('Telegram notification result:', telegramResult);
     } catch (err) {
+      console.error('Error in addAssignment:', err);
       handleFirestoreError(err, OperationType.CREATE, path);
     }
   };
@@ -195,6 +226,10 @@ export function useAppData() {
     const path = `assignments/${id}`;
     try {
       await updateDoc(doc(db, 'assignments', id), updates);
+      const updatedAssignment = assignments.find(a => a.id === id);
+      if (updatedAssignment) {
+        await sendTelegramMessage(formatAssignmentMessage({ ...updatedAssignment, ...updates }, true));
+      }
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, path);
     }
@@ -210,12 +245,22 @@ export function useAppData() {
   };
 
   const addReport = async (report: Omit<Report, 'id'>) => {
+    console.log('addReport called with:', report);
     const id = Math.random().toString(36).substr(2, 9);
     const path = `reports/${id}`;
     const officerId = user?.id || report.officerId || '';
+    const newReport = { ...report, id, officerId };
     try {
-      await setDoc(doc(db, 'reports', id), { ...report, id, officerId });
+      console.log('Attempting to save report to Firestore at path:', path);
+      await setDoc(doc(db, 'reports', id), newReport);
+      console.log('Report saved to Firestore successfully');
+      
+      // Send Telegram notification
+      console.log('Attempting to send Telegram notification...');
+      const telegramResult = await sendTelegramMessage(formatIncidentMessage(newReport, 'Report'));
+      console.log('Telegram notification result:', telegramResult);
     } catch (err) {
+      console.error('Error in addReport:', err);
       handleFirestoreError(err, OperationType.CREATE, path);
     }
   };
@@ -224,6 +269,10 @@ export function useAppData() {
     const path = `reports/${id}`;
     try {
       await updateDoc(doc(db, 'reports', id), updates);
+      const updatedReport = reports.find(r => r.id === id);
+      if (updatedReport) {
+        await sendTelegramMessage(formatIncidentMessage({ ...updatedReport, ...updates }, 'Report', true));
+      }
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, path);
     }

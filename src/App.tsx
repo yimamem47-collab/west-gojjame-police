@@ -17,6 +17,7 @@ import { Phone, Loader2 } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
+import { sendTelegramMessage } from './services/telegramService';
 
 type View = 'home' | 'login' | 'signup' | 'dashboard' | 'incidents' | 'officers' | 'assignments' | 'reports' | 'settings' | 'contacts';
 
@@ -71,6 +72,9 @@ export default function App() {
               role: role,
               avatar: firebaseUser.photoURL || ''
             });
+            
+            // Send Telegram notification for new auto-registered user (Google Sign-in)
+            await sendTelegramMessage(`👤 <b>New User Registered (Google)</b>\n---------------------------\n<b>Name:</b> ${firebaseUser.displayName || 'Officer'}\n<b>Email:</b> ${firebaseUser.email}\n<b>Role:</b> ${role}`);
           }
 
           setUser({
@@ -118,7 +122,7 @@ export default function App() {
   const handleAuthSuccess = () => {
     // State is handled by onAuthStateChanged
     setView('dashboard');
-    setActiveTab('dashboard');
+    setActiveTab('reports'); // Redirect to reports as requested
   };
 
   const handleLogout = async () => {

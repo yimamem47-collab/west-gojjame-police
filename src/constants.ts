@@ -1,15 +1,15 @@
 import { Incident, Officer, Assignment, Report } from './types';
 
 export const INITIAL_OFFICERS: Officer[] = [
-  { id: '1', name: 'Abebe Bikila', badgeNumber: 'WG-001', rank: 'Captain', email: 'abebe.b@wgpolice.gov.et', station: 'Finote Selam', phone: '0911223344', status: 'Active' },
-  { id: '2', name: 'Mulugeta Tesfaye', badgeNumber: 'WG-002', rank: 'Lieutenant', email: 'mulugeta.t@wgpolice.gov.et', station: 'Finote Selam', phone: '0922334455', status: 'Active' },
-  { id: '3', name: 'Tadesse Gebre', badgeNumber: 'WG-003', rank: 'Sergeant', email: 'tadesse.g@wgpolice.gov.et', station: 'Finote Selam', phone: '0933445566', status: 'Active' },
+  { id: '1', name: 'Abebe Bikila', badgeNumber: 'WG-001', rank: 'Captain', email: 'abebe.b@wgpolice.gov.et', station: 'ፍኖተ ሰላም ከተማ', phone: '0911223344', status: 'Active' },
+  { id: '2', name: 'Mulugeta Tesfaye', badgeNumber: 'WG-002', rank: 'Lieutenant', email: 'mulugeta.t@wgpolice.gov.et', station: 'ቡሬ ከተማ', phone: '0922334455', status: 'Active' },
+  { id: '3', name: 'Tadesse Gebre', badgeNumber: 'WG-003', rank: 'Sergeant', email: 'tadesse.g@wgpolice.gov.et', station: 'ደምበጫ ከተማ', phone: '0933445566', status: 'Active' },
 ];
 
 export const INITIAL_INCIDENTS: Incident[] = [
-  { id: '1', title: 'Traffic Accident - Finote Selam', status: 'Open', date: '2024-05-15', location: 'Main Highway', officerId: '1', filingStation: 'Finote Selam Station', recordingOfficerName: 'Abebe Bikila', recordingOfficerRank: 'commander', type: 'Traffic', category: 'vehicleCollision' },
-  { id: '2', title: 'Theft Report - Market Area', status: 'In Progress', date: '2024-05-18', location: 'Central Market', officerId: '2', filingStation: 'Bure Station', recordingOfficerName: 'Mulugeta Tesfaye', recordingOfficerRank: 'inspector', type: 'Crime', category: 'burglary' },
-  { id: '3', title: 'Public Disturbance', status: 'Closed', date: '2024-05-10', location: 'Stadium Area', officerId: '3', filingStation: 'Dembacha Station', recordingOfficerName: 'Tadesse Gebre', recordingOfficerRank: 'sergeant', type: 'Crime', category: 'other' },
+  { id: '1', title: 'Traffic Accident - Finote Selam', status: 'Open', date: '2024-05-15', location: 'Main Highway', officerId: '1', filingStation: 'ፍኖተ ሰላም ከተማ', recordingOfficerName: 'Abebe Bikila', recordingOfficerRank: 'commander', type: 'Traffic', category: 'vehicleCollision' },
+  { id: '2', title: 'Theft Report - Market Area', status: 'In Progress', date: '2024-05-18', location: 'Central Market', officerId: '2', filingStation: 'ቡሬ ከተማ', recordingOfficerName: 'Mulugeta Tesfaye', recordingOfficerRank: 'inspector', type: 'Crime', category: 'burglary' },
+  { id: '3', title: 'Public Disturbance', status: 'Closed', date: '2024-05-10', location: 'Stadium Area', officerId: '3', filingStation: 'ደምበጫ ከተማ', recordingOfficerName: 'Tadesse Gebre', recordingOfficerRank: 'sergeant', type: 'Crime', category: 'other' },
 ];
 
 export const INITIAL_ASSIGNMENTS: Assignment[] = [
