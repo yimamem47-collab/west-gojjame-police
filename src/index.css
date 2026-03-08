@@ -1,72 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-police-navy: #002147;
-  --color-police-gold: #D4AF37;
-  --color-police-white: #FFFFFF;
-  --color-police-blue: #003366;
-  
-  --color-eth-green: #009B77;
-  --color-eth-yellow: #FFFF00;
-  --color-eth-red: #EF3340;
-  --color-vibrant-blue: #007FFF;
-  
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-brand-bg: #020617;
+  --color-brand-card: #0F172A;
+  --color-brand-border: #1E293B;
+  --color-brand-accent: #22D3EE;
+  --color-brand-text-primary: #F8FAFC;
+  --color-brand-text-secondary: #94A3B8;
 }
 
 @layer base {
   body {
-    @apply bg-slate-100 text-slate-900 antialiased select-none transition-colors duration-300;
-    -webkit-tap-highlight-color: transparent;
-    background-image: radial-gradient(circle at top right, rgba(0, 33, 71, 0.05), transparent),
-                      radial-gradient(circle at bottom left, rgba(212, 175, 55, 0.05), transparent);
+    @apply bg-brand-bg text-brand-text-primary font-sans antialiased;
+    background-image: radial-gradient(circle at top right, rgba(34, 211, 238, 0.05), transparent),
+                      radial-gradient(circle at bottom left, rgba(34, 211, 238, 0.05), transparent);
     background-attachment: fixed;
   }
+}
 
-  .dark body {
-    @apply bg-slate-950 text-slate-100;
-    background-image: radial-gradient(circle at top right, rgba(212, 175, 55, 0.05), transparent),
-                      radial-gradient(circle at bottom left, rgba(0, 33, 71, 0.1), transparent);
+@layer components {
+  .glass-card {
+    @apply bg-brand-card border border-brand-border rounded-2xl shadow-lg shadow-indigo-500/5;
   }
-}
+  
+  .btn-primary {
+    @apply bg-brand-accent text-brand-bg font-bold py-2 px-4 rounded-xl transition-all hover:scale-105 active:scale-95 shadow-lg shadow-brand-accent/20 flex items-center justify-center gap-2;
+  }
 
-.glass {
-  @apply bg-white/70 backdrop-blur-md border border-white/20;
-}
+  .btn-secondary {
+    @apply bg-brand-card text-brand-text-primary border border-brand-border font-bold py-2 px-4 rounded-xl transition-all hover:bg-brand-border active:scale-95 flex items-center justify-center gap-2;
+  }
+  
+  .input-field {
+    @apply bg-brand-bg border border-brand-border text-brand-text-primary rounded-xl px-4 py-2 focus:outline-none focus:border-brand-accent transition-colors w-full;
+  }
 
-.glass-blue {
-  @apply bg-police-navy/80 backdrop-blur-lg border border-white/10;
-}
+  .badge-active {
+    @apply bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full text-xs font-medium;
+  }
 
-.mobile-container {
-  @apply max-w-md mx-auto min-h-screen bg-slate-50 shadow-2xl relative flex flex-col overflow-hidden transition-colors duration-300;
-  background-image: 
-    radial-gradient(circle at center, transparent, rgba(15, 23, 42, 0.02)),
-    linear-gradient(rgba(248, 250, 252, 0.98), rgba(248, 250, 252, 0.98)),
-    url("https://files.oaiusercontent.com/file-67c70697771c4997973700");
-  background-position: center;
-  background-repeat: repeat;
-  background-size: 100%, 100%, 140px;
-  background-attachment: fixed;
-}
+  .badge-completed {
+    @apply bg-brand-accent/10 text-brand-accent border border-brand-accent/20 px-2 py-0.5 rounded-full text-xs font-medium;
+  }
 
-.dark .mobile-container {
-  @apply bg-slate-900;
-  background-image: 
-    radial-gradient(circle at center, transparent, rgba(0, 0, 0, 0.2)),
-    linear-gradient(rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.95)),
-    url("https://files.oaiusercontent.com/file-67c70697771c4997973700");
-}
+  .badge-todo {
+    @apply bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full text-xs font-medium;
+  }
 
-.safe-area-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
-}
+  .badge-done {
+    @apply bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full text-xs font-medium;
+  }
 
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
+  .badge-paid {
+    @apply bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full text-xs font-medium;
+  }
 
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  .badge-unpaid {
+    @apply bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded-full text-xs font-medium;
+  }
 }

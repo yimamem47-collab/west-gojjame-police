@@ -2,133 +2,124 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // ===============================================================
-    // Assumed Data Model
-    // ===============================================================
-    //
-    // Collection: crime_reports
-    // Fields:
-    //   - description: string (required)
-    //   - type: string (required, enum: crime, traffic)
-    //   - location: string (optional)
-    //   - timestamp: timestamp (required)
-    //   - mediaUrls: list (optional)
-    //   - status: string (required, enum: pending, investigating, resolved)
-    //   - authorUid: string (required, immutable)
-    //
-    // Collection: emergency_hotlines
-    // Fields:
-    //   - name: string (required)
-    //   - nameAm: string (optional)
-    //   - phone: string (required)
-    //   - zone: string (optional)
-    //
-    // Collection: news_alerts
-    // Fields:
-    //   - title: string (required)
-    //   - titleAm: string (optional)
-    //   - content: string (required)
-    //   - contentAm: string (optional)
-    //   - type: string (required, enum: alert, news, missing)
-    //   - image: string (optional)
-    //   - date: string (required)
-    //   - timestamp: timestamp (required)
-    //
-    // Collection: police_stations
-    // Fields:
-    //   - name: string (required)
-    //   - nameAm: string (optional)
-    //   - location: string (optional)
-    //   - distance: string (optional)
-    //   - phone: string (required)
-    //   - coordinates: map (optional)
-    //
-    // ===============================================================
-
-    // ===============================================================
     // Helper Functions
     // ===============================================================
-    
+
     function isAuthenticated() {
       return request.auth != null;
     }
 
     function isAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-          (request.auth.token.email == "Yimamem47@gmail.com" && request.auth.token.email_verified == true));
+        (request.auth.token.email == "Yimamem47@gmail.com" && request.auth.token.get('email_verified', false) == true);
     }
 
-    function hasOnlyAllowedFields(fields) {
-      return request.resource.data.keys().hasOnly(fields);
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
     }
 
-    function hasRequiredFields(fields) {
-      return request.resource.data.keys().hasAll(fields);
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
     }
 
-    function isValidCrimeReport(data) {
-      return data.description is string && data.description.size() > 0 && data.description.size() < 5000 &&
-             data.type in ['crime', 'traffic'] &&
-             data.status in ['pending', 'investigating', 'resolved'] &&
-             data.authorUid == request.auth.uid;
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
     }
 
-    function isValidNewsAlert(data) {
-      return data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
-             data.content is string && data.content.size() > 0 && data.content.size() < 10000 &&
-             data.type in ['alert', 'news', 'missing'];
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'name', 'email', 'role']) &&
+             data.id == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             isValidEmail(data.email) &&
+             data.role in ['Admin', 'Officer'];
     }
 
-    function isValidPoliceStation(data) {
-      return data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
-             data.phone is string && data.phone.size() > 0 && data.phone.size() < 20;
+    function isValidIncident(data) {
+      return data.keys().hasAll(['id', 'title', 'status', 'date', 'location', 'officerId', 'type', 'category']) &&
+             data.id is string &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.status in ['Open', 'In Progress', 'Closed'] &&
+             isValidDateString(data.date) &&
+             data.location is string && data.location.size() > 0 && data.location.size() < 200 &&
+             data.officerId == request.auth.uid &&
+             data.type in ['Crime', 'Traffic'] &&
+             data.category is string && data.category.size() > 0 && data.category.size() < 100;
+    }
+
+    function isValidOfficer(data) {
+      return data.keys().hasAll(['id', 'name', 'badgeNumber', 'rank', 'email', 'status']) &&
+             data.id is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.badgeNumber is string && data.badgeNumber.size() > 0 && data.badgeNumber.size() < 20 &&
+             data.rank is string && data.rank.size() > 0 && data.rank.size() < 50 &&
+             isValidEmail(data.email) &&
+             data.status in ['Active', 'On Leave', 'Suspended'];
+    }
+
+    function isValidAssignment(data) {
+      return data.keys().hasAll(['id', 'title', 'status', 'dueDate', 'officerId']) &&
+             data.id is string &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.status in ['Pending', 'Completed'] &&
+             isValidDateString(data.dueDate) &&
+             data.officerId is string;
+    }
+
+    function isValidReport(data) {
+      return data.keys().hasAll(['id', 'title', 'status', 'date', 'location', 'officerId', 'type', 'category']) &&
+             data.id is string &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.status in ['Submitted', 'Pending Review'] &&
+             isValidDateString(data.date) &&
+             data.location is string && data.location.size() > 0 && data.location.size() < 200 &&
+             data.officerId == request.auth.uid &&
+             data.type in ['Crime', 'Traffic'] &&
+             data.category is string && data.category.size() > 0 && data.category.size() < 100;
     }
 
     // ===============================================================
     // Rules
     // ===============================================================
 
-    // User profiles
     match /users/{userId} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      allow create: if isAuthenticated() && request.auth.uid == userId && 
-                    hasOnlyAllowedFields(['fullName', 'phoneNumber', 'email', 'address', 'role']) &&
-                    request.resource.data.role == 'user'; // Default role
-      allow update: if isAuthenticated() && (
-                      (request.auth.uid == userId && request.resource.data.role == resource.data.role) || 
-                      isAdmin()
-                    );
+      allow read, write: if isOwner(userId) && isValidUser(request.resource.data);
+      allow delete: if false;
     }
 
-    // Crime Reports (Anonymous Tips)
-    match /crime_reports/{reportId} {
-      // Reporters can only create reports. They cannot read them back (for anonymity/security).
-      // Only admins can read and manage reports.
-      allow read: if isAdmin();
-      allow create: if isAuthenticated() && 
-                    hasRequiredFields(['description', 'type', 'status', 'authorUid', 'timestamp']) &&
-                    isValidCrimeReport(request.resource.data);
-      allow update, delete: if isAdmin();
+    match /incidents/{incidentId} {
+      allow read: if isAuthenticated() && resource.data.officerId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidIncident(request.resource.data) && request.resource.data.officerId == request.auth.uid;
+      allow update: if isAuthenticated() && isValidIncident(request.resource.data) && resource.data.officerId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.officerId == request.auth.uid;
     }
 
-    // Public Collections (News, Hotlines, Stations)
-    match /news_alerts/{alertId} {
-      allow read: if true; // Publicly readable
-      allow write: if isAdmin() && isValidNewsAlert(request.resource.data);
+    match /officers/{officerId} {
+      allow read: if isAuthenticated() && officerId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidOfficer(request.resource.data) && officerId == request.auth.uid;
+      allow update: if isAuthenticated() && isValidOfficer(request.resource.data) && officerId == request.auth.uid;
+      allow delete: if false;
     }
 
-    match /emergency_hotlines/{hotlineId} {
-      allow read: if true; // Publicly readable
-      allow write: if isAdmin();
+    match /assignments/{assignmentId} {
+      allow read: if isAuthenticated() && resource.data.officerId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidAssignment(request.resource.data) && request.resource.data.officerId == request.auth.uid;
+      allow update: if isAuthenticated() && isValidAssignment(request.resource.data) && resource.data.officerId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.officerId == request.auth.uid;
     }
 
-    match /police_stations/{stationId} {
-      allow read: if true; // Publicly readable
-      allow write: if isAdmin() && isValidPoliceStation(request.resource.data);
+    match /reports/{reportId} {
+      allow read: if isAuthenticated() && resource.data.officerId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidReport(request.resource.data) && request.resource.data.officerId == request.auth.uid;
+      allow update: if isAuthenticated() && isValidReport(request.resource.data) && resource.data.officerId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.officerId == request.auth.uid;
     }
 
     // Default deny
-    match /{path=**} {
+    match /{document=**} {
       allow read, write: if false;
     }
   }

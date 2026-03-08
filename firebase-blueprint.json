@@ -1,67 +1,95 @@
 {
   "entities": {
-    "CrimeReport": {
-      "title": "Crime Report",
-      "description": "An anonymous crime report or tip submitted by a citizen.",
+    "Incident": {
+      "title": "Incident",
+      "description": "A reported police incident",
       "type": "object",
       "properties": {
-        "description": { "type": "string", "description": "The detailed description of the incident." },
-        "type": { "type": "string", "enum": ["crime", "traffic"], "description": "The category of the incident." },
-        "location": { "type": "string", "description": "The location where the incident occurred." },
-        "timestamp": { "type": "string", "format": "date-time", "description": "When the report was submitted." },
-        "mediaUrls": { "type": "array", "items": { "type": "string" }, "description": "Links to attached photos or videos." },
-        "status": { "type": "string", "enum": ["pending", "investigating", "resolved"], "description": "Current status of the report." },
-        "authorUid": { "type": "string", "description": "The anonymous UID of the reporter." }
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "type": "string", "enum": ["Open", "In Progress", "Closed"] },
+        "date": { "type": "string" },
+        "location": { "type": "string" },
+        "officerId": { "type": "string" },
+        "filingStation": { "type": "string" },
+        "recordingOfficerName": { "type": "string" },
+        "recordingOfficerRank": { "type": "string" },
+        "type": { "type": "string", "enum": ["Crime", "Traffic"] },
+        "category": { "type": "string" },
+        "description": { "type": "string" }
       },
-      "required": ["description", "type", "timestamp", "authorUid"]
+      "required": ["id", "title", "status", "date", "location", "officerId", "type", "category"]
     },
-    "EmergencyHotline": {
-      "title": "Emergency Hotline",
-      "description": "A contact number for emergency services.",
+    "Officer": {
+      "title": "Officer",
+      "description": "A police officer",
       "type": "object",
       "properties": {
-        "name": { "type": "string", "description": "Name of the station or service." },
-        "nameAm": { "type": "string", "description": "Amharic name of the station or service." },
-        "phone": { "type": "string", "description": "The phone number to call." },
-        "zone": { "type": "string", "description": "The geographical zone covered." }
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "badgeNumber": { "type": "string" },
+        "rank": { "type": "string" },
+        "email": { "type": "string" },
+        "station": { "type": "string" },
+        "phone": { "type": "string" },
+        "status": { "type": "string", "enum": ["Active", "On Leave", "Suspended"] }
       },
-      "required": ["name", "phone"]
+      "required": ["id", "name", "badgeNumber", "rank", "email", "status"]
     },
-    "NewsAlert": {
-      "title": "News & Alert",
-      "description": "Official police announcements and safety alerts.",
+    "Assignment": {
+      "title": "Assignment",
+      "description": "A task assigned to an officer",
       "type": "object",
       "properties": {
-        "title": { "type": "string", "description": "The headline of the news or alert." },
-        "titleAm": { "type": "string", "description": "The Amharic headline." },
-        "content": { "type": "string", "description": "The full text of the announcement." },
-        "contentAm": { "type": "string", "description": "The Amharic full text." },
-        "type": { "type": "string", "enum": ["alert", "news", "missing"], "description": "The type of announcement." },
-        "image": { "type": "string", "description": "URL to a related image." },
-        "date": { "type": "string", "format": "date", "description": "The date of the announcement." },
-        "timestamp": { "type": "string", "format": "date-time", "description": "Server-side timestamp." }
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Completed"] },
+        "dueDate": { "type": "string" },
+        "incidentId": { "type": "string" },
+        "officerId": { "type": "string" }
       },
-      "required": ["title", "content", "type", "date"]
+      "required": ["id", "title", "status", "dueDate", "officerId"]
     },
-    "PoliceStation": {
-      "title": "Police Station",
-      "description": "Information about a local police station.",
+    "Report": {
+      "title": "Report",
+      "description": "An official police report",
       "type": "object",
       "properties": {
-        "name": { "type": "string", "description": "The name of the station." },
-        "nameAm": { "type": "string", "description": "The Amharic name." },
-        "location": { "type": "string", "description": "General location description." },
-        "distance": { "type": "string", "description": "Distance from the user (calculated client-side or stored for reference)." },
-        "phone": { "type": "string", "description": "Contact phone number." },
-        "coordinates": { "type": "object", "properties": { "lat": { "type": "number" }, "lng": { "type": "number" } }, "description": "GPS coordinates." }
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "type": "string", "enum": ["Submitted", "Pending Review"] },
+        "date": { "type": "string" },
+        "location": { "type": "string" },
+        "officerId": { "type": "string" },
+        "filingStation": { "type": "string" },
+        "recordingOfficerName": { "type": "string" },
+        "recordingOfficerRank": { "type": "string" },
+        "type": { "type": "string", "enum": ["Crime", "Traffic"] },
+        "category": { "type": "string" },
+        "description": { "type": "string" }
       },
-      "required": ["name", "phone"]
+      "required": ["id", "title", "status", "date", "location", "officerId", "type", "category"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A system user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["Admin", "Officer"] },
+        "avatar": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "role"]
     }
   },
   "firestore": {
-    "/crime_reports/{reportId}": { "schema": "CrimeReport", "description": "Collection of anonymous crime reports." },
-    "/emergency_hotlines/{hotlineId}": { "schema": "EmergencyHotline", "description": "Collection of emergency contact numbers." },
-    "/news_alerts/{alertId}": { "schema": "NewsAlert", "description": "Collection of official news and safety alerts." },
-    "/police_stations/{stationId}": { "schema": "PoliceStation", "description": "Collection of local police stations." }
+    "/incidents": { "schema": "Incident", "description": "Collection of police incidents" },
+    "/officers": { "schema": "Officer", "description": "Collection of police officers" },
+    "/assignments": { "schema": "Assignment", "description": "Collection of officer assignments" },
+    "/reports": { "schema": "Report", "description": "Collection of official reports" },
+    "/users": { "schema": "User", "description": "Collection of system users" }
   }
 }
