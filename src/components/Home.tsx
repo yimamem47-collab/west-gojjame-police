@@ -1,18 +1,46 @@
 import React from 'react';
-import { Shield, ShieldAlert, Users, ClipboardList, FileText, ArrowRight, Lock, CheckCircle, Globe } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Shield, ShieldAlert, Users, ClipboardList, FileText, ArrowRight, Lock, CheckCircle, Globe, Phone, Camera, Send, MessageSquare } from 'lucide-react';
+import { sendTelegramMessage } from '../services/telegramService';
 import { Language, translations } from '../lib/translations';
+import { motion } from 'motion/react';
+import { useState } from 'react';
 
 interface HomeProps {
   onLogin: () => void;
   onSignup: () => void;
   onReport: (type: 'Crime' | 'Traffic') => void;
+  onViewContacts: () => void;
+  onOpenQR: () => void;
   lang: Language;
   setLang: (lang: Language) => void;
 }
 
-export function Home({ onLogin, onSignup, onReport, lang, setLang }: HomeProps) {
+export function Home({ onLogin, onSignup, onReport, onViewContacts, onOpenQR, lang, setLang }: HomeProps) {
   const t = translations[lang];
+
+  const [quickTip, setQuickTip] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const handleQuickTipSubmit = async () => {
+    if (!quickTip.trim()) {
+      alert(lang === 'am' ? 'እባክህ መጀመሪያ ጥቆማህን ጻፍ!' : 'Please write your tip first!');
+      return;
+    }
+
+    setSending(true);
+    const message = `🚨 አዲስ የፖሊስ ጥቆማ፦\n\n${quickTip}`;
+    const success = await sendTelegramMessage(message);
+    setSending(false);
+
+    if (success) {
+      setSent(true);
+      setQuickTip('');
+      setTimeout(() => setSent(false), 3000);
+    } else {
+      alert(lang === 'am' ? 'ስህተት ተከስቷል! እባክዎ ቆይተው ይሞክሩ።' : 'An error occurred! Please try again later.');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text-primary">
@@ -86,8 +114,63 @@ export function Home({ onLogin, onSignup, onReport, lang, setLang }: HomeProps) 
                 <Shield size={20} />
                 {lang === 'am' ? 'የትራፊክ ደህንነት' : 'Traffic Safety'}
               </button>
+              <button onClick={onViewContacts} className="btn-primary text-lg px-8 py-4 w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 border-emerald-500">
+                <Phone size={20} />
+                {lang === 'am' ? 'ስልክ ቁጥር' : 'Phone Number'}
+              </button>
+              <button onClick={onOpenQR} className="btn-primary text-lg px-8 py-4 w-full sm:w-auto bg-brand-accent hover:bg-brand-accent/90 border-brand-accent">
+                <Camera size={20} />
+                {lang === 'am' ? 'ሰካን ማድረጊያ' : 'Scan QR'}
+              </button>
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* Quick Tip Section */}
+      <section className="py-20 px-4">
+        <div className="max-w-3xl mx-auto glass-card p-8 md:p-12 border-brand-accent/20">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="p-3 bg-brand-accent/10 rounded-2xl">
+              <MessageSquare className="text-brand-accent" size={32} />
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold">{lang === 'am' ? 'ፈጣን ጥቆማ' : 'Quick Tip'}</h2>
+              <p className="text-brand-text-secondary">{lang === 'am' ? 'ለፖሊስ ፈጣን መረጃ ይስጡ' : 'Provide quick information to the police'}</p>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <textarea 
+              id="crimeReport"
+              className="input-field min-h-[150px] text-lg"
+              placeholder={lang === 'am' ? 'ጥቆማዎን እዚህ ይጻፉ...' : 'Write your tip here...'}
+              value={quickTip}
+              onChange={(e) => setQuickTip(e.target.value)}
+            />
+            
+            <button 
+              onClick={handleQuickTipSubmit}
+              disabled={sending || sent}
+              className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${
+                sent ? 'bg-emerald-500 text-white' : 'btn-primary'
+              }`}
+            >
+              {sending ? (
+                <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : sent ? (
+                <>
+                  <CheckCircle size={24} />
+                  {lang === 'am' ? 'ጥቆማው ተልኳል!' : 'Tip Sent!'}
+                </>
+              ) : (
+                <>
+                  <Send size={24} />
+                  {lang === 'am' ? 'ጥቆማ ላክ' : 'Send Tip'}
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </section>
 

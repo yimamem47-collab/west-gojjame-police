@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, MapPin, Calendar, Clock, FileText, Send, X, CheckCircle } from 'lucide-react';
+import { Shield, MapPin, Calendar, Clock, FileText, Send, X, CheckCircle, Camera, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, translations } from '../lib/translations';
 import { auth } from '../firebase';
@@ -21,8 +21,37 @@ export function CitizenReport({ type, lang, onClose, onSubmit }: CitizenReportPr
     time: new Date().toTimeString().slice(0, 5),
     description: '',
     category: 'other',
-    filingStation: ''
+    filingStation: '',
+    photos: [] as string[]
   });
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const newPhotos: string[] = [];
+      const fileList = Array.from(files);
+      fileList.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          newPhotos.push(reader.result as string);
+          if (newPhotos.length === fileList.length) {
+            setFormData(prev => ({
+              ...prev,
+              photos: [...prev.photos, ...newPhotos].slice(0, 3) // Limit to 3
+            }));
+          }
+        };
+        reader.readAsDataURL(file as Blob);
+      });
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      photos: prev.photos.filter((_, i) => i !== index)
+    }));
+  };
 
   const categories = type === 'Crime' ? t.categories.crime : t.categories.traffic;
 
@@ -47,7 +76,7 @@ export function CitizenReport({ type, lang, onClose, onSubmit }: CitizenReportPr
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="glass-card w-full max-w-2xl overflow-hidden"
+        className="glass-card w-full max-w-2xl max-h-[90vh] overflow-y-auto"
       >
         <AnimatePresence mode="wait">
           {step === 'form' ? (
@@ -162,6 +191,7 @@ export function CitizenReport({ type, lang, onClose, onSubmit }: CitizenReportPr
                 <div>
                   <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.detailedDescription}</label>
                   <textarea 
+                    id="crimeReport"
                     required
                     rows={4}
                     className="input-field resize-none" 
@@ -169,6 +199,39 @@ export function CitizenReport({ type, lang, onClose, onSubmit }: CitizenReportPr
                     value={formData.description}
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
                   />
+                </div>
+
+                {/* Photo Upload Section */}
+                <div>
+                  <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.attachPhotos || 'Attach Photos'} (Max 3)</label>
+                  <div className="grid grid-cols-4 gap-4">
+                    {formData.photos.map((photo, index) => (
+                      <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-brand-border group">
+                        <img src={photo} alt="Incident" className="w-full h-full object-cover" />
+                        <button 
+                          type="button"
+                          onClick={() => removePhoto(index)}
+                          className="absolute top-1 right-1 p-1 bg-rose-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))}
+                    {formData.photos.length < 3 && (
+                      <label className="aspect-square rounded-xl border-2 border-dashed border-brand-border flex flex-col items-center justify-center gap-2 hover:border-brand-accent hover:bg-brand-accent/5 transition-all cursor-pointer">
+                        <Camera size={24} className="text-brand-text-secondary" />
+                        <span className="text-[10px] text-brand-text-secondary font-bold uppercase tracking-widest">Add Photo</span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          capture="environment"
+                          multiple
+                          className="hidden" 
+                          onChange={handlePhotoUpload}
+                        />
+                      </label>
+                    )}
+                  </div>
                 </div>
 
                 <div className="bg-brand-accent/5 p-4 rounded-xl border border-brand-accent/10">

@@ -50,6 +50,12 @@ export async function sendTelegramMessage(message: string) {
 export function formatIncidentMessage(incident: any, type: 'Incident' | 'Report', isUpdate: boolean = false) {
   const emoji = incident.type === 'Crime' ? '🚨' : '🚗';
   const action = isUpdate ? 'Updated' : 'New';
+  
+  // If it's a citizen report, use the user's requested format
+  if (incident.officerId === 'citizen') {
+    return `🚨 አዲስ የፖሊስ ጥቆማ፦\n\n<b>Title:</b> ${incident.title}\n<b>Type:</b> ${incident.type}\n<b>Category:</b> ${incident.category}\n<b>Location:</b> ${incident.location}\n<b>Description:</b>\n${incident.description || 'No description provided'}`;
+  }
+
   const header = type === 'Incident' ? `<b>${action} Incident Reported</b>` : `<b>${action} Case Report Submitted</b>`;
   
   return `

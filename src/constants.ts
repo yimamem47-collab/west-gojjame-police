@@ -25,10 +25,11 @@ export const INITIAL_REPORTS: Report[] = [
 
 export const EMERGENCY_CONTACTS = [
   { id: '1', nameKey: 'westGojjamZone', phone: '0587750972' },
-  { id: '2', nameKey: 'trafficPoliceChief', phone: '0587751102' },
-  { id: '3', nameKey: 'finoteSelamCity', phone: '0587751097' },
-  { id: '4', nameKey: 'bureCity', phone: '0587741004' },
-  { id: '5', nameKey: 'bureZuria', phone: '0587740024' },
-  { id: '6', nameKey: 'dembachaCity', phone: '0587730256' },
-  { id: '7', nameKey: 'dembachaZuria', phone: '0582311656' },
+  { id: '2', nameKey: 'trafficPoliceChief', phone: '0587751002' },
+  { id: '3', nameKey: 'mediaCommunication', phone: '0587750327' },
+  { id: '4', nameKey: 'finoteSelamCity', phone: '0587751097' },
+  { id: '5', nameKey: 'bureCity', phone: '0587741004' },
+  { id: '6', nameKey: 'bureZuria', phone: '0587740024' },
+  { id: '7', nameKey: 'dembachaCity', phone: '0587730256' },
+  { id: '8', nameKey: 'dembachaZuria', phone: '0582311656' },
 ];

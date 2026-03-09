@@ -15,6 +15,7 @@ export interface Incident {
   type: 'Crime' | 'Traffic';
   category: string;
   description?: string;
+  photos?: string[];
 }
 
 export interface Officer {
@@ -51,6 +52,7 @@ export interface Report {
   type: 'Crime' | 'Traffic';
   category: string;
   description?: string;
+  photos?: string[];
 }
 
 export interface User {

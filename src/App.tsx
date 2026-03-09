@@ -8,16 +8,18 @@ import { Assignments } from './components/Assignments';
 import { Reports } from './components/Reports';
 import { Settings } from './components/Settings';
 import { PoliceServices } from './components/PoliceServices';
+import { QRScanner } from './components/QRScanner';
 import { Home } from './components/Home';
 import { Auth } from './components/Auth';
 import { EmergencyContacts } from './components/EmergencyContacts';
 import { CitizenReport } from './components/CitizenReport';
 import { Language, translations } from './lib/translations';
-import { Phone, Loader2 } from 'lucide-react';
+import { Phone, Loader2, CheckCircle } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { sendTelegramMessage } from './services/telegramService';
+import { motion } from 'motion/react';
 
 type View = 'home' | 'login' | 'signup' | 'dashboard' | 'incidents' | 'officers' | 'assignments' | 'reports' | 'settings' | 'contacts';
 
@@ -31,6 +33,8 @@ export default function App() {
     const saved = localStorage.getItem('wg_lang');
     return (saved as Language) || 'en';
   });
+  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
+  const [scanResult, setScanResult] = useState<string | null>(null);
   
   const {
     officers, incidents, assignments, reports, user,
@@ -113,7 +117,7 @@ export default function App() {
       if (user && (view === 'home' || view === 'login' || view === 'signup')) {
         setView('dashboard');
         setActiveTab('dashboard');
-      } else if (!user && view !== 'home' && view !== 'login' && view !== 'signup') {
+      } else if (!user && view !== 'home' && view !== 'login' && view !== 'signup' && view !== 'contacts') {
         setView('home');
       }
     }
@@ -151,6 +155,7 @@ export default function App() {
                 setActiveTab('incidents');
               }
               if (action === 'add-assignment') setActiveTab('assignments');
+              if (action === 'open-qr') setIsQRScannerOpen(true);
               if (action.startsWith('edit-incident-')) {
                 const id = action.replace('edit-incident-', '');
                 setInitialEditId(id);
@@ -235,7 +240,7 @@ export default function App() {
       case 'info':
         return <PoliceServices lang={lang} />;
       case 'contacts':
-        return <EmergencyContacts lang={lang} />;
+        return <EmergencyContacts lang={lang} onBack={() => setView('home')} />;
       default:
         return null;
     }
@@ -256,6 +261,11 @@ export default function App() {
           onLogin={() => setView('login')} 
           onSignup={() => setView('signup')} 
           onReport={(type) => setCitizenReportType(type)}
+          onViewContacts={() => {
+            setView('contacts');
+            setActiveTab('contacts');
+          }}
+          onOpenQR={() => setIsQRScannerOpen(true)}
           lang={lang} 
           setLang={setLang} 
         />
@@ -270,6 +280,19 @@ export default function App() {
           />
         )}
       </>
+    );
+  }
+
+  if (view === 'contacts' && !user) {
+    return (
+      <div className="min-h-screen bg-brand-bg p-4 lg:p-8">
+        <div className="max-w-7xl mx-auto">
+          <EmergencyContacts 
+            lang={lang} 
+            onBack={() => setView('home')} 
+          />
+        </div>
+      </div>
     );
   }
 
@@ -298,14 +321,40 @@ export default function App() {
         {renderDashboardContent()}
       </Layout>
 
-      {/* Emergency Button */}
-      <a
-        href="tel:991"
-        className="fixed bottom-8 right-8 z-50 flex items-center gap-2 bg-rose-600 text-white px-6 py-4 rounded-full shadow-2xl shadow-rose-600/40 hover:scale-105 active:scale-95 transition-all font-bold"
-      >
-        <Phone size={24} />
-        <span className="hidden sm:inline">{t.emergencyCall} (991)</span>
-      </a>
+      {isQRScannerOpen && (
+        <QRScanner 
+          lang={lang} 
+          onClose={() => setIsQRScannerOpen(false)} 
+          onScan={(text) => {
+            setScanResult(text);
+            setIsQRScannerOpen(false);
+          }} 
+        />
+      )}
+
+      {scanResult && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-card w-full max-w-md p-8 text-center"
+          >
+            <div className="w-16 h-16 bg-brand-accent/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-brand-accent/20">
+              <CheckCircle size={32} className="text-brand-accent" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">{t.scanResult || 'Scan Result'}</h3>
+            <div className="bg-brand-bg/50 p-4 rounded-xl border border-brand-border mb-8 break-all font-mono text-sm">
+              {scanResult}
+            </div>
+            <button 
+              onClick={() => setScanResult(null)}
+              className="w-full btn-primary"
+            >
+              {t.close || 'Close'}
+            </button>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

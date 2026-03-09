@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Plus, Search, Trash2, Edit2, Calendar, MapPin } from 'lucide-react';
+import { AlertTriangle, Plus, Search, Trash2, Edit2, Calendar, MapPin, Camera, Image as ImageIcon } from 'lucide-react';
 import { Incident, Officer } from '../types';
 import { motion } from 'motion/react';
 import { Language, translations } from '../lib/translations';
@@ -53,8 +53,37 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
     recordingOfficerRank: 'constable',
     type: 'Crime',
     category: 'other',
-    description: ''
+    description: '',
+    photos: [] as string[]
   });
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const newPhotos: string[] = [];
+      const fileList = Array.from(files);
+      fileList.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          newPhotos.push(reader.result as string);
+          if (newPhotos.length === fileList.length) {
+            setNewIncident(prev => ({
+              ...prev,
+              photos: [...(prev.photos || []), ...newPhotos].slice(0, 3)
+            }));
+          }
+        };
+        reader.readAsDataURL(file as Blob);
+      });
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    setNewIncident(prev => ({
+      ...prev,
+      photos: (prev.photos || []).filter((_, i) => i !== index)
+    }));
+  };
 
   const filteredIncidents = incidents.filter(i => 
     i.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -367,6 +396,39 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
                   value={newIncident.description}
                   onChange={(e) => setNewIncident({...newIncident, description: e.target.value})}
                 />
+              </div>
+
+              {/* Photo Upload Section */}
+              <div className="md:col-span-2 lg:col-span-3">
+                <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.attachPhotos || 'Attach Photos'} (Max 3)</label>
+                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-4">
+                  {(newIncident.photos || []).map((photo, index) => (
+                    <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-brand-border group">
+                      <img src={photo} alt="Incident" className="w-full h-full object-cover" />
+                      <button 
+                        type="button"
+                        onClick={() => removePhoto(index)}
+                        className="absolute top-1 right-1 p-1 bg-rose-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  {(newIncident.photos || []).length < 3 && (
+                    <label className="aspect-square rounded-xl border-2 border-dashed border-brand-border flex flex-col items-center justify-center gap-2 hover:border-brand-accent hover:bg-brand-accent/5 transition-all cursor-pointer">
+                      <Camera size={24} className="text-brand-text-secondary" />
+                      <span className="text-[10px] text-brand-text-secondary font-bold uppercase tracking-widest">Add Photo</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        capture="environment"
+                        multiple
+                        className="hidden" 
+                        onChange={handlePhotoUpload}
+                      />
+                    </label>
+                  )}
+                </div>
               </div>
 
               <div className="md:col-span-2 lg:col-span-3 flex gap-3 pt-4">

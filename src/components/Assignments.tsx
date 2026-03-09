@@ -150,7 +150,7 @@ export function Assignments({ assignments, incidents, officers, lang, onAdd, onU
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="glass-card w-full max-w-md p-8"
+            className="glass-card w-full max-w-md p-8 max-h-[90vh] overflow-y-auto"
           >
             <h2 className="text-2xl font-bold mb-6">{editingAssignment ? t.editReport : t.newReport}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">

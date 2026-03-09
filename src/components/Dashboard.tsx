@@ -12,7 +12,8 @@ import {
   Search,
   Edit2,
   Trash2,
-  AlertCircle
+  AlertCircle,
+  Camera
 } from 'lucide-react';
 import { 
   XAxis, 
@@ -138,6 +139,10 @@ export function Dashboard({
             <ClipboardList size={18} />
             {t.assignments || 'Assignments'}
           </button>
+          <button onClick={() => onQuickAction('open-qr')} className="btn-secondary bg-brand-accent/10 border-brand-accent/20 text-brand-accent hover:bg-brand-accent hover:text-white">
+            <Camera size={18} />
+            {lang === 'am' ? 'ሰካን ማድረጊያ' : 'Scan QR'}
+          </button>
         </div>
       </div>
 
@@ -146,6 +151,22 @@ export function Dashboard({
         <StatCard label={t.total + ' ' + (t.officers || 'Officers')} value={officers.length} icon={Users} color="text-brand-accent" />
         <StatCard label={t.total + ' ' + (t.assignments || 'Assignments')} value={assignments.filter(a => a.status === 'Pending').length} icon={ClipboardList} color="text-amber-400" />
         <StatCard label={t.total + ' ' + (t.reports || 'Reports')} value={reports.length} icon={FileText} color="text-emerald-400" />
+      </div>
+
+      {/* Emergency Phone Numbers - Requested in Green */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        {[
+          { label: lang === 'am' ? 'የዞን ፖሊስ' : 'Zone Police', phone: '0587750972' },
+          { label: lang === 'am' ? 'የትራፊክ ፖሊስ' : 'Traffic Police', phone: '0587751002' },
+          { label: lang === 'am' ? 'ሚዲያና ኮምንኬሽን' : 'Media & Comm', phone: '0587750327' }
+        ].map((contact, i) => (
+          <div key={i} className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 flex flex-col items-center justify-center group hover:bg-emerald-500/20 transition-all">
+            <span className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-1">{contact.label}</span>
+            <a href={`tel:${contact.phone}`} className="text-3xl font-black text-emerald-400 tracking-tighter">
+              {contact.phone}
+            </a>
+          </div>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
