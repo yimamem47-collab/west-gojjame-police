@@ -5,12 +5,12 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   
-  --color-brand-bg: #020617;
-  --color-brand-card: #0F172A;
-  --color-brand-border: #1E293B;
-  --color-brand-accent: #22D3EE;
-  --color-brand-text-primary: #F8FAFC;
-  --color-brand-text-secondary: #94A3B8;
+  --color-brand-bg: #1A237E;
+  --color-brand-card: #283593;
+  --color-brand-border: #3949AB;
+  --color-brand-accent: #FFD700;
+  --color-brand-text-primary: #FFFFFF;
+  --color-brand-text-secondary: #E8EAF6;
 }
 
 @layer base {
@@ -36,7 +36,7 @@
   }
   
   .input-field {
-    @apply bg-brand-bg border border-brand-border text-brand-text-primary rounded-xl px-4 py-2 focus:outline-none focus:border-brand-accent transition-colors w-full;
+    @apply bg-white border border-brand-border text-brand-bg rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-accent/50 transition-all w-full shadow-md font-medium;
   }
 
   .badge-active {

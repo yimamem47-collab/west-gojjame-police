@@ -32,7 +32,7 @@ export interface Officer {
 export interface Assignment {
   id: string;
   title: string;
-  description: string;
+  description?: string;
   status: AssignmentStatus;
   dueDate: string;
   incidentId: string;
@@ -44,7 +44,7 @@ export interface Report {
   title: string;
   status: ReportStatus;
   date: string;
-  location: string;
+  location?: string;
   officerId: string;
   filingStation: string;
   recordingOfficerName: string;
@@ -53,6 +53,19 @@ export interface Report {
   category: string;
   description?: string;
   photos?: string[];
+}
+
+export interface ZoneReport {
+  id: string;
+  officer_name: string;
+  officer_id: string;
+  deputy_dept: string;
+  main_dept: string;
+  wereda: string;
+  report_type: 'Monthly' | 'Quarterly' | '6-Month' | '9-Month' | 'Annual';
+  photo_url?: string;
+  document_url?: string;
+  timestamp: string;
 }
 
 export interface User {

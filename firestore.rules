@@ -90,7 +90,11 @@ service cloud.firestore {
     // ===============================================================
 
     match /users/{userId} {
-      allow read, write: if isOwner(userId) && isValidUser(request.resource.data);
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && 
+                    (request.resource.data.role == 'Officer' || isAdmin());
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && 
+                    (request.resource.data.role == resource.data.role || isAdmin());
       allow delete: if false;
     }
 
@@ -102,7 +106,7 @@ service cloud.firestore {
     }
 
     match /officers/{officerId} {
-      allow read: if isAuthenticated() && (officerId == request.auth.uid || isAdmin());
+      allow read: if isAuthenticated() && (officerId == request.auth.uid || resource.data.email == request.auth.token.email || isAdmin());
       allow create: if isAuthenticated() && isValidOfficer(request.resource.data) && (officerId == request.auth.uid || isAdmin());
       allow update: if isAuthenticated() && isValidOfficer(request.resource.data) && (officerId == request.auth.uid || isAdmin());
       allow delete: if isAdmin();
@@ -120,6 +124,13 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isValidReport(request.resource.data) && (request.resource.data.officerId == request.auth.uid || isAdmin());
       allow update: if isAuthenticated() && isValidReport(request.resource.data) && (resource.data.officerId == request.auth.uid || isAdmin());
       allow delete: if isAuthenticated() && (resource.data.officerId == request.auth.uid || isAdmin());
+    }
+
+    match /zone_detailed_reports/{reportId} {
+      allow read: if isAuthenticated() && (resource.data.officer_id == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && (request.resource.data.officer_id == request.auth.uid || isAdmin());
+      allow update: if isAuthenticated() && (resource.data.officer_id == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
     }
 
     // Default deny

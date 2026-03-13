@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Plus, Search, Trash2, Edit2, Calendar, MapPin, Camera, Image as ImageIcon } from 'lucide-react';
 import { Incident, Officer } from '../types';
 import { motion } from 'motion/react';
@@ -47,7 +47,7 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
     status: 'Open',
     date: new Date().toISOString().split('T')[0],
     location: '',
-    officerId: officers[0]?.id || '',
+    officerId: '',
     filingStation: '',
     recordingOfficerName: '',
     recordingOfficerRank: 'constable',
@@ -56,6 +56,13 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
     description: '',
     photos: [] as string[]
   });
+
+  // Update default officer when officers list is loaded
+  useEffect(() => {
+    if (officers.length > 0 && !newIncident.officerId) {
+      setNewIncident(prev => ({ ...prev, officerId: officers[0].id }));
+    }
+  }, [officers, newIncident.officerId]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -269,7 +276,7 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
             <h2 className="text-2xl font-bold mb-6">{editingIncident ? t.editReport : t.newReport}</h2>
             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="space-y-4">
-                <div>
+                <div className="bg-brand-bg/50 p-4 rounded-xl border border-brand-border shadow-sm">
                   <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.incidentType}</label>
                   <input 
                     required
@@ -279,7 +286,7 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
                     onChange={(e) => setNewIncident({...newIncident, title: e.target.value})}
                   />
                 </div>
-                <div>
+                <div className="bg-brand-bg/50 p-4 rounded-xl border border-brand-border shadow-sm">
                   <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.type}</label>
                   <select 
                     className="input-field"
@@ -290,7 +297,7 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
                     <option value="Traffic">{t.traffic}</option>
                   </select>
                 </div>
-                <div>
+                <div className="bg-brand-bg/50 p-4 rounded-xl border border-brand-border shadow-sm">
                   <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.selectCategory}</label>
                   <select 
                     className="input-field"
@@ -311,7 +318,7 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
               </div>
 
               <div className="space-y-4">
-                <div>
+                <div className="bg-brand-bg/50 p-4 rounded-xl border border-brand-border shadow-sm">
                   <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.incidentLocation}</label>
                   <input 
                     required
@@ -321,7 +328,7 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
                     onChange={(e) => setNewIncident({...newIncident, location: e.target.value})}
                   />
                 </div>
-                <div>
+                <div className="bg-brand-bg/50 p-4 rounded-xl border border-brand-border shadow-sm">
                   <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.filingStation}</label>
                   <select 
                     required
@@ -335,7 +342,7 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="bg-brand-bg/50 p-4 rounded-xl border border-brand-border shadow-sm">
                   <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.date}</label>
                   <input 
                     required
@@ -348,7 +355,7 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
               </div>
 
               <div className="space-y-4">
-                <div>
+                <div className="bg-brand-bg/50 p-4 rounded-xl border border-brand-border shadow-sm">
                   <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.recordingOfficer}</label>
                   <select 
                     required
@@ -366,7 +373,7 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
                       }
                     }}
                   >
-                    <option value="">Select Officer</option>
+                    <option value="">{t.selectOfficer || 'Select Officer'}</option>
                     {officers.map((officer) => (
                       <option key={officer.id} value={officer.id}>
                         {officer.name} ({(t.ranks as any)[officer.rank] || officer.rank})
@@ -374,7 +381,7 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="bg-brand-bg/50 p-4 rounded-xl border border-brand-border shadow-sm">
                   <label className="block text-sm font-medium text-brand-text-secondary mb-2">Status</label>
                   <select 
                     className="input-field"
@@ -388,7 +395,7 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
                 </div>
               </div>
 
-              <div className="md:col-span-2 lg:col-span-3">
+              <div className="md:col-span-2 lg:col-span-3 bg-brand-bg/50 p-4 rounded-xl border border-brand-border shadow-sm">
                 <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.detailedDescription}</label>
                 <textarea 
                   className="input-field min-h-[100px]"
@@ -399,7 +406,7 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
               </div>
 
               {/* Photo Upload Section */}
-              <div className="md:col-span-2 lg:col-span-3">
+              <div className="md:col-span-2 lg:col-span-3 bg-brand-bg/50 p-4 rounded-xl border border-brand-border shadow-sm">
                 <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.attachPhotos || 'Attach Photos'} (Max 3)</label>
                 <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-4">
                   {(newIncident.photos || []).map((photo, index) => (

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText, Plus, Search, Trash2, Download, Edit2, Shield } from 'lucide-react';
 import { Report, Officer } from '../types';
 import { motion } from 'motion/react';
@@ -46,7 +46,7 @@ export function Reports({ reports, officers, lang, initialEditId, onAdd, onUpdat
     title: '',
     status: 'Pending Review',
     date: new Date().toISOString().split('T')[0],
-    officerId: officers[0]?.id || '',
+    officerId: '',
     filingStation: '',
     recordingOfficerName: '',
     recordingOfficerRank: 'constable',
@@ -54,6 +54,13 @@ export function Reports({ reports, officers, lang, initialEditId, onAdd, onUpdat
     category: 'other',
     description: ''
   });
+
+  // Update default officer when officers list is loaded
+  useEffect(() => {
+    if (officers.length > 0 && !newReport.officerId) {
+      setNewReport(prev => ({ ...prev, officerId: officers[0].id }));
+    }
+  }, [officers, newReport.officerId]);
 
   const filteredReports = reports.filter(r => 
     r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -344,7 +351,7 @@ export function Reports({ reports, officers, lang, initialEditId, onAdd, onUpdat
                       }
                     }}
                   >
-                    <option value="">Select Officer</option>
+                    <option value="">{t.selectOfficer || 'Select Officer'}</option>
                     {officers.map((officer) => (
                       <option key={officer.id} value={officer.id}>
                         {officer.name} ({(t.ranks as any)[officer.rank] || officer.rank})

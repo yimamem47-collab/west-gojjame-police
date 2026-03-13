@@ -83,6 +83,24 @@
         "avatar": { "type": "string" }
       },
       "required": ["id", "name", "email", "role"]
+    },
+    "ZoneReport": {
+      "title": "ZoneReport",
+      "description": "Detailed police report for a specific zone/wereda",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "officer_name": { "type": "string" },
+        "officer_id": { "type": "string" },
+        "deputy_dept": { "type": "string" },
+        "main_dept": { "type": "string" },
+        "wereda": { "type": "string" },
+        "report_type": { "type": "string", "enum": ["Monthly", "Quarterly", "6-Month", "9-Month", "Annual"] },
+        "photo_url": { "type": "string" },
+        "document_url": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "officer_name", "officer_id", "deputy_dept", "main_dept", "wereda", "report_type", "timestamp"]
     }
   },
   "firestore": {
@@ -90,6 +108,7 @@
     "/officers": { "schema": "Officer", "description": "Collection of police officers" },
     "/assignments": { "schema": "Assignment", "description": "Collection of officer assignments" },
     "/reports": { "schema": "Report", "description": "Collection of official reports" },
-    "/users": { "schema": "User", "description": "Collection of system users" }
+    "/users": { "schema": "User", "description": "Collection of system users" },
+    "/zone_detailed_reports": { "schema": "ZoneReport", "description": "Detailed zone reports" }
   }
 }

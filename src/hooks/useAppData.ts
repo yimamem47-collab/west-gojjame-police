@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Incident, Officer, Assignment, Report, User } from '../types';
+import { Incident, Officer, Assignment, Report, User, ZoneReport } from '../types';
 import { INITIAL_OFFICERS, INITIAL_INCIDENTS, INITIAL_ASSIGNMENTS, INITIAL_REPORTS } from '../constants';
-import { db } from '../firebase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 import { sendTelegramMessage, formatIncidentMessage, formatOfficerMessage, formatAssignmentMessage } from '../services/telegramService';
 import { 
   collection, 
@@ -14,38 +14,12 @@ import {
   where
 } from 'firebase/firestore';
 
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: any;
-}
-
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: 'Auth info handled in App.tsx',
-    operationType,
-    path
-  };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
-}
-
 export function useAppData() {
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
+  const [zoneReports, setZoneReports] = useState<ZoneReport[]>([]);
   const [user, setUser] = useState<User | null>(null);
 
   // Sync with Firestore
@@ -55,26 +29,40 @@ export function useAppData() {
       setIncidents([]);
       setAssignments([]);
       setReports([]);
+      setZoneReports([]);
       return;
     }
 
     const isAdmin = user.role === 'Admin';
 
-    // Officers query: Admins see all, others see only themselves by email
+    // Officers query
     const officersQuery = isAdmin 
       ? collection(db, 'officers') 
       : query(collection(db, 'officers'), where('email', '==', user.email));
 
     const unsubOfficers = onSnapshot(officersQuery, (snapshot) => {
       const data = snapshot.docs.map(doc => doc.data() as Officer);
-      setOfficers(data.length > 0 ? data : (isAdmin ? INITIAL_OFFICERS : []));
-    }, (err) => {
-      if (err.code !== 'permission-denied') {
-        handleFirestoreError(err, OperationType.LIST, 'officers');
+      let finalOfficers = data;
+      if (data.length === 0 && isAdmin) {
+        finalOfficers = INITIAL_OFFICERS;
+      } else if (data.length === 0 && !isAdmin && user) {
+        finalOfficers = [{
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          rank: 'constable',
+          badgeNumber: 'PENDING',
+          station: 'Pending Assignment',
+          phone: '',
+          status: 'Active'
+        }];
       }
+      setOfficers(finalOfficers);
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, 'officers');
     });
 
-    // Incidents query: Admins see all, others see only their own
+    // Incidents query
     const incidentsQuery = isAdmin 
       ? collection(db, 'incidents') 
       : query(collection(db, 'incidents'), where('officerId', '==', user.id));
@@ -83,12 +71,10 @@ export function useAppData() {
       const data = snapshot.docs.map(doc => doc.data() as Incident);
       setIncidents(data.length > 0 ? data : (isAdmin ? INITIAL_INCIDENTS : []));
     }, (err) => {
-      if (err.code !== 'permission-denied') {
-        handleFirestoreError(err, OperationType.LIST, 'incidents');
-      }
+      handleFirestoreError(err, OperationType.LIST, 'incidents');
     });
 
-    // Assignments query: Admins see all, others see only their own
+    // Assignments query
     const assignmentsQuery = isAdmin 
       ? collection(db, 'assignments') 
       : query(collection(db, 'assignments'), where('officerId', '==', user.id));
@@ -97,12 +83,10 @@ export function useAppData() {
       const data = snapshot.docs.map(doc => doc.data() as Assignment);
       setAssignments(data.length > 0 ? data : (isAdmin ? INITIAL_ASSIGNMENTS : []));
     }, (err) => {
-      if (err.code !== 'permission-denied') {
-        handleFirestoreError(err, OperationType.LIST, 'assignments');
-      }
+      handleFirestoreError(err, OperationType.LIST, 'assignments');
     });
 
-    // Reports query: Admins see all, others see only their own
+    // Reports query
     const reportsQuery = isAdmin 
       ? collection(db, 'reports') 
       : query(collection(db, 'reports'), where('officerId', '==', user.id));
@@ -111,9 +95,19 @@ export function useAppData() {
       const data = snapshot.docs.map(doc => doc.data() as Report);
       setReports(data.length > 0 ? data : (isAdmin ? INITIAL_REPORTS : []));
     }, (err) => {
-      if (err.code !== 'permission-denied') {
-        handleFirestoreError(err, OperationType.LIST, 'reports');
-      }
+      handleFirestoreError(err, OperationType.LIST, 'reports');
+    });
+
+    // Zone Reports query
+    const zoneReportsQuery = isAdmin 
+      ? collection(db, 'zone_detailed_reports') 
+      : query(collection(db, 'zone_detailed_reports'), where('officer_id', '==', user.id));
+
+    const unsubZoneReports = onSnapshot(zoneReportsQuery, (snapshot) => {
+      const data = snapshot.docs.map(doc => doc.data() as ZoneReport);
+      setZoneReports(data);
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, 'zone_detailed_reports');
     });
 
     return () => {
@@ -121,23 +115,22 @@ export function useAppData() {
       unsubIncidents();
       unsubAssignments();
       unsubReports();
+      unsubZoneReports();
     };
   }, [user]);
 
   const addOfficer = async (officer: Omit<Officer, 'id'>) => {
     const id = Math.random().toString(36).substr(2, 9);
-    const path = `officers/${id}`;
     const newOfficer = { ...officer, id };
     try {
       await setDoc(doc(db, 'officers', id), newOfficer);
       await sendTelegramMessage(formatOfficerMessage(newOfficer));
     } catch (err) {
-      handleFirestoreError(err, OperationType.CREATE, path);
+      handleFirestoreError(err, OperationType.CREATE, `officers/${id}`);
     }
   };
 
   const updateOfficer = async (id: string, updates: Partial<Officer>) => {
-    const path = `officers/${id}`;
     try {
       await updateDoc(doc(db, 'officers', id), updates);
       const updatedOfficer = officers.find(o => o.id === id);
@@ -145,85 +138,78 @@ export function useAppData() {
         await sendTelegramMessage(formatOfficerMessage({ ...updatedOfficer, ...updates }, true));
       }
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, path);
+      handleFirestoreError(err, OperationType.UPDATE, `officers/${id}`);
     }
   };
 
   const deleteOfficer = async (id: string) => {
-    const path = `officers/${id}`;
     try {
       await deleteDoc(doc(db, 'officers', id));
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, path);
+      handleFirestoreError(err, OperationType.DELETE, `officers/${id}`);
     }
   };
 
   const addIncident = async (incident: Omit<Incident, 'id'>) => {
-    console.log('addIncident called with:', incident);
     const id = Math.random().toString(36).substr(2, 9);
-    const path = `incidents/${id}`;
-    const officerId = user?.id || incident.officerId || '';
-    const newIncident = { ...incident, id, officerId };
+    const officerId = incident.officerId || user?.id || '';
+    const officer = officers.find(o => o.id === officerId);
+    const enrichedIncident = {
+      ...incident,
+      id,
+      officerId,
+      recordingOfficerName: officer?.name || incident.recordingOfficerName || 'Unknown',
+      recordingOfficerRank: officer?.rank || incident.recordingOfficerRank || 'constable'
+    };
     try {
-      console.log('Attempting to save incident to Firestore at path:', path);
-      await setDoc(doc(db, 'incidents', id), newIncident);
-      console.log('Incident saved to Firestore successfully');
-      
-      // Send Telegram notification
-      console.log('Attempting to send Telegram notification...');
-      const telegramResult = await sendTelegramMessage(formatIncidentMessage(newIncident, 'Incident'));
-      console.log('Telegram notification result:', telegramResult);
+      await setDoc(doc(db, 'incidents', id), enrichedIncident);
+      await sendTelegramMessage(formatIncidentMessage(enrichedIncident, 'Incident'));
     } catch (err) {
-      console.error('Error in addIncident:', err);
-      handleFirestoreError(err, OperationType.CREATE, path);
+      handleFirestoreError(err, OperationType.CREATE, `incidents/${id}`);
     }
   };
 
   const updateIncident = async (id: string, updates: Partial<Incident>) => {
-    const path = `incidents/${id}`;
     try {
-      await updateDoc(doc(db, 'incidents', id), updates);
+      let finalUpdates = { ...updates };
+      if (updates.officerId) {
+        const officer = officers.find(o => o.id === updates.officerId);
+        if (officer) {
+          finalUpdates.recordingOfficerName = officer.name;
+          finalUpdates.recordingOfficerRank = officer.rank;
+        }
+      }
+      await updateDoc(doc(db, 'incidents', id), finalUpdates);
       const updatedIncident = incidents.find(i => i.id === id);
       if (updatedIncident) {
-        await sendTelegramMessage(formatIncidentMessage({ ...updatedIncident, ...updates }, 'Incident', true));
+        await sendTelegramMessage(formatIncidentMessage({ ...updatedIncident, ...finalUpdates }, 'Incident', true));
       }
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, path);
+      handleFirestoreError(err, OperationType.UPDATE, `incidents/${id}`);
     }
   };
 
   const deleteIncident = async (id: string) => {
-    const path = `incidents/${id}`;
     try {
       await deleteDoc(doc(db, 'incidents', id));
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, path);
+      handleFirestoreError(err, OperationType.DELETE, `incidents/${id}`);
     }
   };
 
   const addAssignment = async (assignment: Omit<Assignment, 'id'>) => {
-    console.log('addAssignment called with:', assignment);
     const id = Math.random().toString(36).substr(2, 9);
-    const path = `assignments/${id}`;
     const officerId = user?.id || assignment.officerId || '';
     const newAssignment = { ...assignment, id, officerId };
     try {
-      console.log('Attempting to save assignment to Firestore at path:', path);
       await setDoc(doc(db, 'assignments', id), newAssignment);
-      console.log('Assignment saved to Firestore successfully');
-      
-      // Send Telegram notification
-      console.log('Attempting to send Telegram notification...');
-      const telegramResult = await sendTelegramMessage(formatAssignmentMessage(newAssignment));
-      console.log('Telegram notification result:', telegramResult);
+      await sendTelegramMessage(formatAssignmentMessage(newAssignment));
     } catch (err) {
-      console.error('Error in addAssignment:', err);
-      handleFirestoreError(err, OperationType.CREATE, path);
+      handleFirestoreError(err, OperationType.CREATE, `assignments/${id}`);
     }
   };
 
   const updateAssignment = async (id: string, updates: Partial<Assignment>) => {
-    const path = `assignments/${id}`;
     try {
       await updateDoc(doc(db, 'assignments', id), updates);
       const updatedAssignment = assignments.find(a => a.id === id);
@@ -231,59 +217,77 @@ export function useAppData() {
         await sendTelegramMessage(formatAssignmentMessage({ ...updatedAssignment, ...updates }, true));
       }
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, path);
+      handleFirestoreError(err, OperationType.UPDATE, `assignments/${id}`);
     }
   };
 
   const deleteAssignment = async (id: string) => {
-    const path = `assignments/${id}`;
     try {
       await deleteDoc(doc(db, 'assignments', id));
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, path);
+      handleFirestoreError(err, OperationType.DELETE, `assignments/${id}`);
     }
   };
 
   const addReport = async (report: Omit<Report, 'id'>) => {
-    console.log('addReport called with:', report);
     const id = Math.random().toString(36).substr(2, 9);
-    const path = `reports/${id}`;
-    const officerId = user?.id || report.officerId || '';
-    const newReport = { ...report, id, officerId };
+    const officerId = report.officerId || user?.id || '';
+    const officer = officers.find(o => o.id === officerId);
+    const enrichedReport = {
+      ...report,
+      id,
+      officerId,
+      recordingOfficerName: officer?.name || report.recordingOfficerName || 'Unknown',
+      recordingOfficerRank: officer?.rank || report.recordingOfficerRank || 'constable'
+    };
     try {
-      console.log('Attempting to save report to Firestore at path:', path);
-      await setDoc(doc(db, 'reports', id), newReport);
-      console.log('Report saved to Firestore successfully');
-      
-      // Send Telegram notification
-      console.log('Attempting to send Telegram notification...');
-      const telegramResult = await sendTelegramMessage(formatIncidentMessage(newReport, 'Report'));
-      console.log('Telegram notification result:', telegramResult);
+      await setDoc(doc(db, 'reports', id), enrichedReport);
+      await sendTelegramMessage(formatIncidentMessage(enrichedReport, 'Report'));
     } catch (err) {
-      console.error('Error in addReport:', err);
-      handleFirestoreError(err, OperationType.CREATE, path);
+      handleFirestoreError(err, OperationType.CREATE, `reports/${id}`);
     }
   };
 
   const updateReport = async (id: string, updates: Partial<Report>) => {
-    const path = `reports/${id}`;
     try {
-      await updateDoc(doc(db, 'reports', id), updates);
+      let finalUpdates = { ...updates };
+      if (updates.officerId) {
+        const officer = officers.find(o => o.id === updates.officerId);
+        if (officer) {
+          finalUpdates.recordingOfficerName = officer.name;
+          finalUpdates.recordingOfficerRank = officer.rank;
+        }
+      }
+      await updateDoc(doc(db, 'reports', id), finalUpdates);
       const updatedReport = reports.find(r => r.id === id);
       if (updatedReport) {
-        await sendTelegramMessage(formatIncidentMessage({ ...updatedReport, ...updates }, 'Report', true));
+        await sendTelegramMessage(formatIncidentMessage({ ...updatedReport, ...finalUpdates }, 'Report', true));
       }
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, path);
+      handleFirestoreError(err, OperationType.UPDATE, `reports/${id}`);
     }
   };
 
   const deleteReport = async (id: string) => {
-    const path = `reports/${id}`;
     try {
       await deleteDoc(doc(db, 'reports', id));
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, path);
+      handleFirestoreError(err, OperationType.DELETE, `reports/${id}`);
+    }
+  };
+
+  const addZoneReport = async (report: Omit<ZoneReport, 'id' | 'timestamp'>) => {
+    const id = Math.random().toString(36).substr(2, 9);
+    const newReport = { 
+      ...report, 
+      id, 
+      timestamp: new Date().toISOString() 
+    };
+    try {
+      await setDoc(doc(db, 'zone_detailed_reports', id), newReport);
+      await sendTelegramMessage(`📋 <b>New Zone Detailed Report</b>\n---------------------------\n<b>Officer:</b> ${newReport.officer_name}\n<b>Deputy Dept:</b> ${newReport.deputy_dept}\n<b>Main Dept:</b> ${newReport.main_dept}\n<b>Wereda:</b> ${newReport.wereda}\n<b>Type:</b> ${newReport.report_type}`);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, `zone_detailed_reports/${id}`);
     }
   };
 
@@ -296,11 +300,12 @@ export function useAppData() {
   };
 
   return {
-    officers, incidents, assignments, reports, user,
+    officers, incidents, assignments, reports, zoneReports, user,
     addOfficer, updateOfficer, deleteOfficer,
     addIncident, updateIncident, deleteIncident,
     addAssignment, updateAssignment, deleteAssignment,
     addReport, updateReport, deleteReport,
+    addZoneReport,
     login, logout, setUser
   };
 }

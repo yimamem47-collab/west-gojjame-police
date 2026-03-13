@@ -13,7 +13,9 @@ import {
   Edit2,
   Trash2,
   AlertCircle,
-  Camera
+  Camera,
+  Facebook,
+  Send
 } from 'lucide-react';
 import { 
   XAxis, 
@@ -27,6 +29,7 @@ import {
 import { motion } from 'motion/react';
 import { Incident, Officer, Assignment, Report } from '../types';
 import { Language, translations } from '../lib/translations';
+import { APP_LOGO } from '../constants';
 
 interface StatCardProps {
   label: string;
@@ -124,11 +127,22 @@ export function Dashboard({
   }).sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 6);
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t.dashboard}</h1>
-          <p className="text-brand-text-secondary">{t.dashboardOverview}</p>
+    <div className="space-y-8 relative">
+      {/* 1. Background Watermark Logo */}
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none z-0">
+        <img src={APP_LOGO} alt="" className="w-[600px] h-[600px] object-contain grayscale" referrerPolicy="no-referrer" />
+      </div>
+
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+        <div className="flex items-center gap-4">
+          {/* 2. Header Logo */}
+          <div className="w-16 h-16 bg-white/5 rounded-2xl p-2 border border-white/10 flex items-center justify-center shadow-xl">
+            <img src={APP_LOGO} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{t.dashboard}</h1>
+            <p className="text-brand-text-secondary">{t.dashboardOverview}</p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-3">
           <button onClick={() => onQuickAction('add-incident')} className="btn-primary">
@@ -222,8 +236,12 @@ export function Dashboard({
           </div>
         </div>
 
-        <div className="glass-card p-6">
-          <div className="flex flex-col gap-4 mb-6">
+        <div className="glass-card p-6 relative overflow-hidden">
+          {/* 3. Card Logo Accent */}
+          <div className="absolute -top-4 -right-4 opacity-10 rotate-12">
+            <img src={APP_LOGO} alt="" className="w-24 h-24 object-contain" referrerPolicy="no-referrer" />
+          </div>
+          <div className="flex flex-col gap-4 mb-6 relative z-10">
             <h3 className="text-lg font-bold">{t.savedReports}</h3>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-text-secondary" size={14} />
@@ -289,6 +307,39 @@ export function Dashboard({
         </div>
       </div>
 
+      {/* Recording Officer List Section */}
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-brand-accent/10 rounded-lg border border-brand-accent/20">
+              <Users size={20} className="text-brand-accent" />
+            </div>
+            <h3 className="text-lg font-bold">{lang === 'am' ? 'የመዝጋቢ ኦፊሰሮች ዝርዝር' : 'Recording Officer List'}</h3>
+          </div>
+          <button onClick={() => onQuickAction('view-officers')} className="text-sm font-bold text-brand-accent hover:underline">
+            {t.viewDetails}
+          </button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {officers.map((officer) => (
+            <div key={officer.id} className="bg-brand-bg/50 border border-brand-border rounded-xl p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-brand-accent/10 flex items-center justify-center border border-brand-accent/20">
+                <Shield size={18} className="text-brand-accent" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold truncate">{officer.name}</p>
+                <p className="text-[10px] text-brand-text-secondary uppercase tracking-wider">{(t.ranks as any)[officer.rank] || officer.rank}</p>
+              </div>
+            </div>
+          ))}
+          {officers.length === 0 && (
+            <div className="col-span-full text-center py-4 text-brand-text-secondary text-sm italic">
+              No officers registered yet.
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -325,6 +376,45 @@ export function Dashboard({
           </motion.div>
         </div>
       )}
+
+      {/* Social Media Buttons */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+        <a 
+          href="https://www.facebook.com/share/1CCxnhaNmX/" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-4 p-6 bg-[#1877F2] text-white rounded-2xl shadow-xl hover:bg-[#166fe5] transition-all group"
+        >
+          <div className="p-3 bg-white/20 rounded-xl group-hover:scale-110 transition-transform">
+            <Facebook size={32} />
+          </div>
+          <div className="text-left">
+            <p className="text-xs font-bold uppercase tracking-widest opacity-80">Official Page</p>
+            <h4 className="text-2xl font-black">Facebook</h4>
+          </div>
+        </a>
+        <a 
+          href="https://t.me/westgojjamepolice" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-4 p-6 bg-[#229ED9] text-white rounded-2xl shadow-xl hover:bg-[#2094cc] transition-all group"
+        >
+          <div className="p-3 bg-white/20 rounded-xl group-hover:scale-110 transition-transform">
+            <Send size={32} />
+          </div>
+          <div className="text-left">
+            <p className="text-xs font-bold uppercase tracking-widest opacity-80">Official Channel</p>
+            <h4 className="text-2xl font-black">Telegram</h4>
+          </div>
+        </a>
+      </div>
+
+      {/* Developer Credit */}
+      <div className="mt-12 pb-6 text-center">
+        <p className="text-white italic opacity-80">
+          Developed by: Chief Sergeant Mengesha Yimam Abera
+        </p>
+      </div>
     </div>
   );
 }

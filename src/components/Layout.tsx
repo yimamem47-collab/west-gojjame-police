@@ -11,10 +11,14 @@ import {
   X,
   AlertTriangle,
   Globe,
-  Phone
+  Phone,
+  HelpCircle,
+  Bot,
+  ArrowLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, translations } from '../lib/translations';
+import { APP_LOGO } from '../constants';
 
 interface SidebarItemProps {
   key?: string;
@@ -44,13 +48,14 @@ interface LayoutProps {
   children: React.ReactNode;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onBack: () => void;
   onLogout: () => void;
   userName: string;
   lang: Language;
   setLang: (lang: Language) => void;
 }
 
-export function Layout({ children, activeTab, setActiveTab, onLogout, userName, lang, setLang }: LayoutProps) {
+export function Layout({ children, activeTab, setActiveTab, onBack, onLogout, userName, lang, setLang }: LayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const t = translations[lang];
 
@@ -60,20 +65,33 @@ export function Layout({ children, activeTab, setActiveTab, onLogout, userName, 
     { id: 'officers', label: t.officers || 'Officers', icon: Users },
     { id: 'assignments', label: t.assignments || 'Assignments', icon: ClipboardList },
     { id: 'reports', label: t.reports || 'Reports', icon: FileText },
+    { id: 'zone-reports', label: t.zoneReports.title || 'Zone Reports', icon: ClipboardList },
     { id: 'contacts', label: t.contacts || 'Contacts', icon: Phone },
     { id: 'info', label: t.info || 'Info', icon: Shield },
+    { id: 'ai-assistant', label: t.aiAssistant || 'AI Assistant', icon: Bot },
+    { id: 'help', label: t.help || 'Help', icon: HelpCircle },
     { id: 'settings', label: t.settings || 'Settings', icon: Settings },
   ];
 
   return (
     <div className="min-h-screen flex bg-brand-bg text-brand-text-primary overflow-hidden">
       {/* Mobile Menu Button */}
-      <button 
-        onClick={() => setIsSidebarOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-brand-card border border-brand-border rounded-lg text-brand-text-primary"
-      >
-        <Menu size={24} />
-      </button>
+      <div className="lg:hidden fixed top-4 left-4 z-50 flex gap-2">
+        <button 
+          onClick={() => setIsSidebarOpen(true)}
+          className="p-2 bg-brand-card border border-brand-border rounded-lg text-brand-text-primary shadow-lg"
+        >
+          <Menu size={24} />
+        </button>
+        {activeTab !== 'dashboard' && (
+          <button 
+            onClick={onBack}
+            className="p-2 bg-brand-card border border-brand-border rounded-lg text-brand-text-primary shadow-lg flex items-center gap-2"
+          >
+            <ArrowLeft size={24} />
+          </button>
+        )}
+      </div>
 
       {/* Sidebar Overlay */}
       <AnimatePresence>
@@ -98,13 +116,13 @@ export function Layout({ children, activeTab, setActiveTab, onLogout, userName, 
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-brand-accent">
                 <img 
-                  src="https://lh3.googleusercontent.com/u/0/d/1Cs0lYh3PD1lR_cQH4lET3GRUYRF11Z6i" 
+                  src={APP_LOGO} 
                   alt="Logo" 
                   className="w-full h-full object-cover rounded-full"
                   referrerPolicy="no-referrer"
                 />
               </div>
-              <span className="text-xl font-bold tracking-tight">WG Police</span>
+              <span className="text-xl font-bold tracking-tight">West Gojjam Police</span>
             </div>
             <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-brand-text-secondary">
               <X size={24} />
@@ -155,11 +173,6 @@ export function Layout({ children, activeTab, setActiveTab, onLogout, userName, 
                 <p className="text-xs text-brand-text-secondary truncate">{t.officerAccount}</p>
               </div>
             </div>
-            <div className="px-4 py-2 border-t border-brand-border/50">
-              <p className="text-[10px] font-bold text-brand-accent/70 leading-tight">
-                ዲቨሎፕ ባይ ዋና ሳጅን መንገሻ ይማም አበራ / Developed by Chief Sergeant Mengesha Yimam Abera
-              </p>
-            </div>
             <button
               onClick={onLogout}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-rose-400 hover:bg-rose-400/10 transition-all"
@@ -174,6 +187,15 @@ export function Layout({ children, activeTab, setActiveTab, onLogout, userName, 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-4 lg:p-8 pt-20 lg:pt-8">
         <div className="max-w-7xl mx-auto">
+          {activeTab !== 'dashboard' && (
+            <button 
+              onClick={onBack}
+              className="hidden lg:flex items-center gap-2 text-brand-text-secondary hover:text-brand-text-primary mb-6 transition-colors"
+            >
+              <ArrowLeft size={20} />
+              <span>{lang === 'am' ? 'ተመለስ' : 'Back'}</span>
+            </button>
+          )}
           {children}
         </div>
       </main>

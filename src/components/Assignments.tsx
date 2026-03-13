@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ClipboardList, Plus, Search, Trash2, Calendar, Edit2, CheckCircle } from 'lucide-react';
 import { Assignment, Incident, Officer } from '../types';
 import { motion } from 'motion/react';
@@ -23,9 +23,19 @@ export function Assignments({ assignments, incidents, officers, lang, onAdd, onU
     title: '',
     status: 'Pending',
     dueDate: '',
-    incidentId: incidents[0]?.id || '',
-    officerId: officers[0]?.id || ''
+    incidentId: '',
+    officerId: ''
   });
+
+  // Update default values when lists are loaded
+  useEffect(() => {
+    if (officers.length > 0 && !newAssignment.officerId) {
+      setNewAssignment(prev => ({ ...prev, officerId: officers[0].id }));
+    }
+    if (incidents.length > 0 && !newAssignment.incidentId) {
+      setNewAssignment(prev => ({ ...prev, incidentId: incidents[0].id }));
+    }
+  }, [officers, incidents, newAssignment.officerId, newAssignment.incidentId]);
 
   const filteredAssignments = assignments.filter(a => 
     a.title.toLowerCase().includes(searchTerm.toLowerCase())

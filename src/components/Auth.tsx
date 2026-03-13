@@ -3,6 +3,7 @@ import { Shield, Mail, Lock, User, ArrowRight, ShieldCheck, Globe, AlertCircle, 
 import { motion } from 'motion/react';
 import { Language, translations } from '../lib/translations';
 import { auth, googleProvider } from '../firebase';
+import { APP_LOGO } from '../constants';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -29,6 +30,12 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
     password: '',
     badgeNumber: ''
   });
+
+  const isIframe = window.self !== window.top;
+
+  const handleOpenInNewTab = () => {
+    window.open(window.location.href, '_blank');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,10 +65,26 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
       }
     } catch (err: any) {
       console.error('Auth error:', err);
-      let message = 'An error occurred. Please try again.';
-      if (err.code === 'auth/email-already-in-use') message = 'This email is already registered.';
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') message = 'Invalid email or password.';
-      if (err.code === 'auth/weak-password') message = 'Password should be at least 6 characters.';
+      let message = lang === 'am' ? 'ስህተት ተከስቷል! እባክዎ ቆይተው ይሞክሩ።' : 'An error occurred. Please try again.';
+      
+      if (err.code === 'auth/email-already-in-use') {
+        message = lang === 'am' ? 'ይህ ኢሜይል ቀድሞ ተመዝግቧል።' : 'This email is already registered.';
+      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-email') {
+        message = lang === 'am' ? 'የተሳሳተ ኢሜይል ወይም የይለፍ ቃል!' : 'Invalid email or password.';
+      } else if (err.code === 'auth/weak-password') {
+        message = lang === 'am' ? 'የይለፍ ቃል ቢያንስ 6 ፊደላት መሆን አለበት።' : 'Password should be at least 6 characters.';
+      } else if (err.code === 'auth/network-request-failed') {
+        message = lang === 'am' ? 'የኢንተርኔት ግንኙነት ችግር አለ። እባክዎ ግንኙነትዎን ያረጋግጡ።' : 'Network error. Please check your internet connection.';
+      } else if (err.code === 'auth/too-many-requests') {
+        message = lang === 'am' ? 'ብዙ ሙከራ ተደርጓል። እባክዎ ለጥቂት ደቂቃዎች ቆይተው ይሞክሩ።' : 'Too many attempts. Please try again later.';
+      } else if (err.code === 'auth/operation-not-allowed') {
+        message = lang === 'am' ? 'ይህ የመግቢያ ዘዴ አልተፈቀደም። እባክዎ በFirebase Console ውስጥ "Email/Password" መፍቀድዎን ያረጋግጡ።' : 'Email/Password sign-in is not enabled in Firebase Console.';
+      } else if (err.code === 'auth/user-disabled') {
+        message = lang === 'am' ? 'ይህ አካውንት ታግዷል። እባክዎ አስተዳዳሪውን ያነጋግሩ።' : 'This account has been disabled.';
+      } else if (err.code) {
+        message += ` (${err.code})`;
+      }
+      
       setError(message);
     } finally {
       setLoading(false);
@@ -79,7 +102,15 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
       });
     } catch (err: any) {
       console.error('Google Auth error:', err);
-      setError('Failed to sign in with Google. Please try again.');
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError(lang === 'am' ? 'የመግቢያው መስኮት ተዘግቷል። እባክዎ እንደገና ይሞክሩ።' : 'Sign-in popup closed. Please try again.');
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError(lang === 'am' ? 'ይህ ዌብሳይት በFirebase አልተፈቀደም። እባክዎ አስተዳዳሪውን ያነጋግሩ።' : 'This domain is not authorized in Firebase. Please contact support.');
+      } else {
+        const amMsg = `በGoogle መግባት አልተቻለም። እባክዎ እንደገና ይሞክሩ።${err.code ? ` (${err.code})` : ''}`;
+        const enMsg = `Failed to sign in with Google. Please try again.${err.code ? ` (${err.code})` : ''}`;
+        setError(lang === 'am' ? amMsg : enMsg);
+      }
     } finally {
       setLoading(false);
     }
@@ -114,7 +145,7 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
         <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-[150px] h-[150px] bg-[#002B5B] rounded-full mb-4 shadow-xl border-[3px] border-[#003366] overflow-hidden">
               <img 
-                src="https://lh3.googleusercontent.com/u/0/d/1Cs0lYh3PD1lR_cQH4lET3GRUYRF11Z6i" 
+                src={APP_LOGO} 
                 alt="የምዕራብ ጎጃም ዞን ፖሊስ አርማ" 
                 className="w-full h-full object-cover rounded-full"
                 referrerPolicy="no-referrer"
@@ -129,6 +160,23 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
           <h2 className="text-lg font-medium text-[#FFD700] mb-2">
             {type === 'login' ? t.loginTitle : t.signupTitle}
           </h2>
+          
+          {isIframe && (
+            <div className="mb-4 p-3 bg-brand-accent/10 border border-brand-accent/20 rounded-xl text-xs text-brand-accent flex flex-col items-center gap-2">
+              <p className="text-center">
+                {lang === 'am' 
+                  ? 'በስልክዎ ላይ ለመግባት ከተቸገሩ፣ እባክዎ መተግበሪያውን በአዲስ ታብ (New Tab) ይክፈቱት።' 
+                  : 'If you have trouble signing in on mobile, please open the app in a new tab.'}
+              </p>
+              <button 
+                onClick={handleOpenInNewTab}
+                className="px-3 py-1 bg-brand-accent text-brand-bg rounded-lg font-bold hover:bg-brand-accent/90 transition-all"
+              >
+                {lang === 'am' ? 'በአዲስ ታብ ክፈት' : 'Open in New Tab'}
+              </button>
+            </div>
+          )}
+
           <p className="text-white/60 text-sm">
             {type === 'login' 
               ? 'Access the West Gojjam Zone Police system.' 

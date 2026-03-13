@@ -118,7 +118,9 @@ export function Officers({ officers, lang, onAdd, onUpdate, onDelete }: Officers
               </div>
             </div>
             <h3 className="text-lg font-bold mb-1">{officer.name}</h3>
-            <p className="text-brand-accent text-xs font-bold uppercase tracking-widest mb-3">{officer.rank}</p>
+            <p className="text-brand-accent text-xs font-bold uppercase tracking-widest mb-3">
+              {(t.ranks as any)[officer.rank] || officer.rank}
+            </p>
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-brand-text-secondary text-sm">
                 <BadgeCheck size={14} className="text-brand-accent" />
@@ -166,17 +168,15 @@ export function Officers({ officers, lang, onAdd, onUpdate, onDelete }: Officers
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-brand-text-secondary mb-2">Rank</label>
+                  <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.rank || 'Rank'}</label>
                   <select 
                     className="input-field"
                     value={newOfficer.rank}
-                    onChange={(e) => setNewOfficer({...newOfficer, rank: e.target.value as any})}
+                    onChange={(e) => setNewOfficer({...newOfficer, rank: e.target.value})}
                   >
-                    <option value="Officer">Officer</option>
-                    <option value="Sergeant">Sergeant</option>
-                    <option value="Lieutenant">Lieutenant</option>
-                    <option value="Captain">Captain</option>
-                    <option value="Commander">Commander</option>
+                    {Object.entries(t.ranks).map(([key, label]) => (
+                      <option key={key} value={key}>{label as string}</option>
+                    ))}
                   </select>
                 </div>
                 <div>

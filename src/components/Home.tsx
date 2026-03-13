@@ -2,6 +2,7 @@ import React from 'react';
 import { Shield, ShieldAlert, Users, ClipboardList, FileText, ArrowRight, Lock, CheckCircle, Globe, Phone, Camera, Send, MessageSquare } from 'lucide-react';
 import { sendTelegramMessage } from '../services/telegramService';
 import { Language, translations } from '../lib/translations';
+import { APP_LOGO } from '../constants';
 import { motion } from 'motion/react';
 import { useState } from 'react';
 
@@ -50,13 +51,13 @@ export function Home({ onLogin, onSignup, onReport, onViewContacts, onOpenQR, la
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-brand-accent shadow-sm">
               <img 
-                src="https://lh3.googleusercontent.com/u/0/d/1Cs0lYh3PD1lR_cQH4lET3GRUYRF11Z6i" 
+                src={APP_LOGO} 
                 alt="Logo" 
                 className="w-full h-full object-cover rounded-full"
                 referrerPolicy="no-referrer"
               />
             </div>
-            <span className="text-xl font-bold tracking-tight">WG Police</span>
+            <span className="text-xl font-bold tracking-tight">West Gojjam Police</span>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 mr-4 border-r border-brand-border pr-4">
@@ -236,15 +237,14 @@ export function Home({ onLogin, onSignup, onReport, onViewContacts, onOpenQR, la
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 text-brand-text-secondary">
           <div className="flex items-center gap-2">
             <Shield size={20} className="text-brand-accent" />
-            <span className="text-lg font-bold text-brand-text-primary">WG Police</span>
+            <span className="text-lg font-bold text-brand-text-primary">West Gojjam Police</span>
           </div>
-          <p className="text-sm">© 2024 West Gojjam Zone Police Department. All rights reserved. ዲቨሎፕ ባይ ዋና ሳጅን መንገሻ ይማም አበራ / Developed by Chief Sergeant Mengesha Yimam Abera</p>
+          <p className="text-sm">© 2024 West Gojjam Zone Police Department. All rights reserved.</p>
           <div className="flex gap-6 text-sm">
             <a href="https://www.facebook.com/share/1CCxnhaNmX/" target="_blank" rel="noopener noreferrer" className="hover:text-brand-text-primary">Facebook</a>
             <a href="https://t.me/westgojjamepolice" target="_blank" rel="noopener noreferrer" className="hover:text-brand-text-primary">Telegram</a>
           </div>
           <div className="text-center md:text-right">
-            <p className="text-xs font-bold text-brand-accent">ዲቨሎፕ ባይ ዋና ሳጅን መንገሻ ይማም አበራ / Developed by Chief Sergeant Mengesha Yimam Abera</p>
           </div>
         </div>
       </footer>
