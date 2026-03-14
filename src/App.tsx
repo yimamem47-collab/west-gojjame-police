@@ -10,10 +10,13 @@ import { Settings } from './components/Settings';
 import { PoliceServices } from './components/PoliceServices';
 import { AppManual } from './components/AppManual';
 import { QRScanner } from './components/QRScanner';
+import { PoliceIDScanner } from './components/PoliceIDScanner';
 import { Home } from './components/Home';
 import { Auth } from './components/Auth';
 import { EmergencyContacts } from './components/EmergencyContacts';
 import { CitizenReport } from './components/CitizenReport';
+import { CommunityReports } from './components/CommunityReports';
+import { CommunityReportForm } from './components/CommunityReportForm';
 import ZoneReports from './components/ZoneReports';
 import { AIAssistant } from './components/AIAssistant';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -26,7 +29,7 @@ import { sendTelegramMessage } from './services/telegramService';
 import { motion, AnimatePresence } from 'motion/react';
 import { APP_LOGO } from './constants';
 
-type View = 'home' | 'login' | 'signup' | 'dashboard' | 'incidents' | 'officers' | 'assignments' | 'reports' | 'settings' | 'contacts' | 'ai-assistant';
+type View = 'home' | 'login' | 'signup' | 'dashboard' | 'incidents' | 'officers' | 'assignments' | 'reports' | 'settings' | 'contacts' | 'ai-assistant' | 'community-report';
 
 export default function App() {
   const [view, setView] = useState<View>('home');
@@ -40,6 +43,7 @@ export default function App() {
     return (saved as Language) || 'en';
   });
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
+  const [isIDScannerOpen, setIsIDScannerOpen] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [showSplash, setShowSplash] = useState(true);
   
@@ -198,6 +202,7 @@ export default function App() {
               }
               if (action === 'add-assignment') setActiveTab('assignments');
               if (action === 'open-qr') setIsQRScannerOpen(true);
+              if (action === 'open-id-scanner') setIsIDScannerOpen(true);
               if (action === 'view-officers') setActiveTab('officers');
               if (action.startsWith('edit-incident-')) {
                 const id = action.replace('edit-incident-', '');
@@ -272,6 +277,8 @@ export default function App() {
             currentUser={user}
           />
         );
+      case 'community-reports':
+        return <CommunityReports lang={lang} />;
       case 'settings':
         return (
           <Settings 
@@ -377,6 +384,7 @@ export default function App() {
             setActiveTab('contacts');
           }}
           onOpenQR={() => setIsQRScannerOpen(true)}
+          onCommunityReport={() => setView('community-report')}
           lang={lang} 
           setLang={setLang} 
         />
@@ -392,6 +400,10 @@ export default function App() {
         )}
       </>
     );
+  }
+
+  if (view === 'community-report') {
+    return <CommunityReportForm lang={lang} onBack={() => setView('home')} />;
   }
 
   if (view === 'contacts' && !user) {
@@ -442,6 +454,14 @@ export default function App() {
               setScanResult(text);
               setIsQRScannerOpen(false);
             }} 
+          />
+        )}
+
+        {isIDScannerOpen && (
+          <PoliceIDScanner
+            lang={lang}
+            onClose={() => setIsIDScannerOpen(false)}
+            officers={officers}
           />
         )}
 

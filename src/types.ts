@@ -26,7 +26,7 @@ export interface Officer {
   email: string;
   station: string;
   phone: string;
-  status: 'Active' | 'On Leave' | 'Suspended';
+  status: 'Active' | 'On Leave' | 'Suspended' | 'Lost';
 }
 
 export interface Assignment {
@@ -65,6 +65,18 @@ export interface ZoneReport {
   report_type: 'Monthly' | 'Quarterly' | '6-Month' | '9-Month' | 'Annual';
   photo_url?: string;
   document_url?: string;
+  timestamp: string;
+}
+
+export interface CommunityReport {
+  id: string;
+  reporterName: string;
+  reporterPhone: string;
+  reporterEmail?: string;
+  location: string;
+  date: string;
+  details: string;
+  status: 'New' | 'Reviewed' | 'Action Taken';
   timestamp: string;
 }
 

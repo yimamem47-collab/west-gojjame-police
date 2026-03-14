@@ -73,8 +73,25 @@ export default function ZoneReports({ reports, officers, onAddReport, language, 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!newReport.deputy_dept || !newReport.main_dept || !newReport.wereda) {
-      alert(language === 'am' ? 'እባክዎን ሁሉንም ምርጫዎች ይምረጡ' : 'Please select all options');
+    // Validation
+    if (!newReport.officer_name?.trim() || newReport.officer_name.length < 3) {
+      alert(language === 'am' ? 'እባክዎ ትክክለኛ የመኮንን ስም ያስገቡ (ቢያንስ 3 ፊደላት)' : 'Please enter a valid officer name (min 3 characters)');
+      return;
+    }
+    if (!newReport.deputy_dept) {
+      alert(language === 'am' ? 'እባክዎ ምክትል መምሪያ ይምረጡ' : 'Please select a deputy department');
+      return;
+    }
+    if (!newReport.main_dept) {
+      alert(language === 'am' ? 'እባክዎ ዋና ክፍል ይምረጡ' : 'Please select a main department');
+      return;
+    }
+    if (!newReport.wereda) {
+      alert(language === 'am' ? 'እባክዎ ወረዳ/ጣቢያ ይምረጡ' : 'Please select a wereda/station');
+      return;
+    }
+    if (!newReport.report_type) {
+      alert(language === 'am' ? 'እባክዎ የሪፖርት አይነት ይምረጡ' : 'Please select a report type');
       return;
     }
 

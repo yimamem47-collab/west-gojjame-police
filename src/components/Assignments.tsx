@@ -43,6 +43,25 @@ export function Assignments({ assignments, incidents, officers, lang, onAdd, onU
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    if (!newAssignment.title.trim() || newAssignment.title.length < 3) {
+      alert(lang === 'am' ? 'እባክዎ ትክክለኛ ርዕስ ያስገቡ (ቢያንስ 3 ፊደላት)' : 'Please enter a valid title (min 3 characters)');
+      return;
+    }
+    if (!newAssignment.dueDate) {
+      alert(lang === 'am' ? 'እባክዎ ቀን ይምረጡ' : 'Please select a due date');
+      return;
+    }
+    if (!newAssignment.officerId) {
+      alert(lang === 'am' ? 'እባክዎ መኮንን ይምረጡ' : 'Please select an officer');
+      return;
+    }
+    if (!newAssignment.incidentId) {
+      alert(lang === 'am' ? 'እባክዎ ክስተት ይምረጡ' : 'Please select an incident');
+      return;
+    }
+
     if (editingAssignment) {
       onUpdate(editingAssignment.id, newAssignment);
       setEditingAssignment(null);

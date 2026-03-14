@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, ShieldAlert, Users, ClipboardList, FileText, ArrowRight, Lock, CheckCircle, Globe, Phone, Camera, Send, MessageSquare } from 'lucide-react';
+import { Shield, ShieldAlert, Users, ClipboardList, FileText, ArrowRight, Lock, CheckCircle, Globe, Phone, Camera, Send, MessageSquare, Facebook } from 'lucide-react';
 import { sendTelegramMessage } from '../services/telegramService';
 import { Language, translations } from '../lib/translations';
 import { APP_LOGO } from '../constants';
@@ -12,11 +12,12 @@ interface HomeProps {
   onReport: (type: 'Crime' | 'Traffic') => void;
   onViewContacts: () => void;
   onOpenQR: () => void;
+  onCommunityReport: () => void;
   lang: Language;
   setLang: (lang: Language) => void;
 }
 
-export function Home({ onLogin, onSignup, onReport, onViewContacts, onOpenQR, lang, setLang }: HomeProps) {
+export function Home({ onLogin, onSignup, onReport, onViewContacts, onOpenQR, onCommunityReport, lang, setLang }: HomeProps) {
   const t = translations[lang];
 
   const [quickTip, setQuickTip] = useState('');
@@ -118,6 +119,10 @@ export function Home({ onLogin, onSignup, onReport, onViewContacts, onOpenQR, la
               <button onClick={onViewContacts} className="btn-primary text-lg px-8 py-4 w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 border-emerald-500">
                 <Phone size={20} />
                 {lang === 'am' ? 'ስልክ ቁጥር' : 'Phone Number'}
+              </button>
+              <button onClick={onCommunityReport} className="btn-primary text-lg px-8 py-4 w-full sm:w-auto bg-blue-600 hover:bg-blue-700 border-blue-500">
+                <MessageSquare size={20} />
+                {lang === 'am' ? 'የማህበረሰብ ሪፖርት' : 'Community Report'}
               </button>
               <button onClick={onOpenQR} className="btn-primary text-lg px-8 py-4 w-full sm:w-auto bg-brand-accent hover:bg-brand-accent/90 border-brand-accent">
                 <Camera size={20} />
@@ -233,19 +238,35 @@ export function Home({ onLogin, onSignup, onReport, onViewContacts, onOpenQR, la
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 border-t border-brand-border">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 text-brand-text-secondary">
-          <div className="flex items-center gap-2">
-            <Shield size={20} className="text-brand-accent" />
-            <span className="text-lg font-bold text-brand-text-primary">West Gojjam Police</span>
+      <footer className="w-full text-center py-8 px-4 bg-brand-bg border-t border-brand-border mt-auto">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-xl font-bold text-brand-text-primary mb-4">
+            {lang === 'am' ? 'የምዕራብ ጎጃም ዞን ፖሊስ መምሪያ' : 'West Gojjam Zone Police Department'}
+          </p>
+          <div className="flex justify-center gap-6 mb-6">
+            <a 
+              href="https://www.facebook.com/share/1CCxnhaNmX/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-[#1877F2] hover:text-[#166fe5] transition-colors font-medium bg-white/5 px-4 py-2 rounded-full border border-white/10 hover:bg-white/10"
+            >
+              <Facebook size={20} />
+              <span>Facebook</span>
+            </a>
+            <a 
+              href="https://t.me/westgojjamepolice" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-[#229ED9] hover:text-[#2094cc] transition-colors font-medium bg-white/5 px-4 py-2 rounded-full border border-white/10 hover:bg-white/10"
+            >
+              <Send size={20} />
+              <span>Telegram</span>
+            </a>
           </div>
-          <p className="text-sm">© 2024 West Gojjam Zone Police Department. All rights reserved.</p>
-          <div className="flex gap-6 text-sm">
-            <a href="https://www.facebook.com/share/1CCxnhaNmX/" target="_blank" rel="noopener noreferrer" className="hover:text-brand-text-primary">Facebook</a>
-            <a href="https://t.me/westgojjamepolice" target="_blank" rel="noopener noreferrer" className="hover:text-brand-text-primary">Telegram</a>
-          </div>
-          <div className="text-center md:text-right">
-          </div>
+          <hr className="border-brand-border mb-6" />
+          <p className="text-brand-text-secondary italic font-medium">
+            Developed by: Chief Sergeant Mengesha Yimam Abera
+          </p>
         </div>
       </footer>
     </div>

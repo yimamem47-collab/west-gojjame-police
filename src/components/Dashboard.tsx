@@ -153,6 +153,10 @@ export function Dashboard({
             <ClipboardList size={18} />
             {t.assignments || 'Assignments'}
           </button>
+          <button onClick={() => onQuickAction('open-id-scanner')} className="btn-secondary bg-[#1A237E]/20 border-[#1A237E]/30 text-[#1A237E] dark:text-blue-400 hover:bg-[#1A237E] hover:text-white">
+            <Search size={18} />
+            {lang === 'am' ? 'የፖሊስ መታወቂያ ስካነር' : 'Police ID Scanner'}
+          </button>
           <button onClick={() => onQuickAction('open-qr')} className="btn-secondary bg-brand-accent/10 border-brand-accent/20 text-brand-accent hover:bg-brand-accent hover:text-white">
             <Camera size={18} />
             {lang === 'am' ? 'ሰካን ማድረጊያ' : 'Scan QR'}
@@ -376,45 +380,6 @@ export function Dashboard({
           </motion.div>
         </div>
       )}
-
-      {/* Social Media Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
-        <a 
-          href="https://www.facebook.com/share/1CCxnhaNmX/" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-4 p-6 bg-[#1877F2] text-white rounded-2xl shadow-xl hover:bg-[#166fe5] transition-all group"
-        >
-          <div className="p-3 bg-white/20 rounded-xl group-hover:scale-110 transition-transform">
-            <Facebook size={32} />
-          </div>
-          <div className="text-left">
-            <p className="text-xs font-bold uppercase tracking-widest opacity-80">Official Page</p>
-            <h4 className="text-2xl font-black">Facebook</h4>
-          </div>
-        </a>
-        <a 
-          href="https://t.me/westgojjamepolice" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-4 p-6 bg-[#229ED9] text-white rounded-2xl shadow-xl hover:bg-[#2094cc] transition-all group"
-        >
-          <div className="p-3 bg-white/20 rounded-xl group-hover:scale-110 transition-transform">
-            <Send size={32} />
-          </div>
-          <div className="text-left">
-            <p className="text-xs font-bold uppercase tracking-widest opacity-80">Official Channel</p>
-            <h4 className="text-2xl font-black">Telegram</h4>
-          </div>
-        </a>
-      </div>
-
-      {/* Developer Credit */}
-      <div className="mt-12 pb-6 text-center">
-        <p className="text-white italic opacity-80">
-          Developed by: Chief Sergeant Mengesha Yimam Abera
-        </p>
-      </div>
     </div>
   );
 }

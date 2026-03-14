@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from "firebase/auth";
-import { initializeFirestore, doc, getDocFromServer } from "firebase/firestore";
+import { getFirestore, doc, getDocFromServer } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import firebaseConfig from "../firebase-applet-config.json";
 
@@ -14,10 +14,8 @@ setPersistence(auth, browserLocalPersistence).catch((err) => {
   console.error("Auth persistence error:", err);
 });
 
-// Initialize Firestore with settings to bypass potential network restrictions
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-}, firebaseConfig.firestoreDatabaseId);
+// Initialize Firestore
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const googleProvider = new GoogleAuthProvider();
 
 /**

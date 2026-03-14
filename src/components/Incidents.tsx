@@ -101,6 +101,33 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    if (!newIncident.title.trim() || newIncident.title.length < 3) {
+      alert(lang === 'am' ? 'እባክዎ ትክክለኛ ርዕስ ያስገቡ (ቢያንስ 3 ፊደላት)' : 'Please enter a valid title (min 3 characters)');
+      return;
+    }
+    if (!newIncident.location.trim()) {
+      alert(lang === 'am' ? 'እባክዎ ትክክለኛ ቦታ ያስገቡ' : 'Please enter a valid location');
+      return;
+    }
+    if (!newIncident.officerId) {
+      alert(lang === 'am' ? 'እባክዎ መኮንን ይምረጡ' : 'Please select an officer');
+      return;
+    }
+    if (!newIncident.date) {
+      alert(lang === 'am' ? 'እባክዎ ቀን ይምረጡ' : 'Please select a date');
+      return;
+    }
+    if (new Date(newIncident.date) > new Date()) {
+      alert(lang === 'am' ? 'ቀን ከዛሬ ሊበልጥ አይችልም' : 'Date cannot be in the future');
+      return;
+    }
+    if (!newIncident.description?.trim() || newIncident.description.length < 10) {
+      alert(lang === 'am' ? 'እባክዎ ዝርዝር መግለጫ ያስገቡ (ቢያንስ 10 ፊደላት)' : 'Please enter a detailed description (min 10 characters)');
+      return;
+    }
+
     if (editingIncident) {
       onUpdate(editingIncident.id, newIncident);
       setEditingIncident(null);

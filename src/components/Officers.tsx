@@ -35,6 +35,29 @@ export function Officers({ officers, lang, onAdd, onUpdate, onDelete }: Officers
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    if (!newOfficer.name.trim() || newOfficer.name.length < 3) {
+      alert(lang === 'am' ? 'እባክዎ ትክክለኛ ስም ያስገቡ (ቢያንስ 3 ፊደላት)' : 'Please enter a valid name (min 3 characters)');
+      return;
+    }
+    if (!newOfficer.badgeNumber.trim()) {
+      alert(lang === 'am' ? 'እባክዎ የባጅ ቁጥር ያስገቡ' : 'Please enter a badge number');
+      return;
+    }
+    if (!newOfficer.station.trim()) {
+      alert(lang === 'am' ? 'እባክዎ ጣቢያ ያስገቡ' : 'Please enter a station');
+      return;
+    }
+    if (newOfficer.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newOfficer.email)) {
+      alert(lang === 'am' ? 'እባክዎ ትክክለኛ ኢሜይል ያስገቡ' : 'Please enter a valid email address');
+      return;
+    }
+    if (newOfficer.phone && !/^\+?[\d\s-]{9,}$/.test(newOfficer.phone)) {
+      alert(lang === 'am' ? 'እባክዎ ትክክለኛ ስልክ ቁጥር ያስገቡ' : 'Please enter a valid phone number');
+      return;
+    }
+
     if (editingOfficer) {
       onUpdate(editingOfficer.id, newOfficer);
       setEditingOfficer(null);
