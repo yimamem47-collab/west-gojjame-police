@@ -12,29 +12,18 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Police System">
     
-    <!-- Inline Web App Manifest -->
-    <link rel="manifest" href='data:application/manifest+json,{"name":"West Gojjam Zone Police Management System","short_name":"Police System","display":"standalone","start_url":".","background_color":"#f4f7f6","theme_color":"#002B5B","icons":[{"src":"data:image/svg+xml;charset=utf-8,%3Csvg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 100 100\\"%3E%3Crect width=\\"100\\" height=\\"100\\" fill=\\"%23002B5B\\"/%3E%3Ctext x=\\"50\\" y=\\"55\\" font-size=\\"40\\" fill=\\"white\\" text-anchor=\\"middle\\" font-family=\\"sans-serif\\"%3Eፖ%3C/text%3E%3C/svg%3E","sizes":"192x192 512x512","type":"image/svg+xml"}]}'>
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="https://img.icons8.com/color/192/police-badge.png" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Inline Service Worker for PWA support
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          const swCode = `
-            self.addEventListener('install', (e) => { self.skipWaiting(); });
-            self.addEventListener('activate', (e) => { e.waitUntil(clients.claim()); });
-            self.addEventListener('fetch', (e) => {
-              // Basic fetch handler
-            });
-          `;
-          const blob = new Blob([swCode], { type: 'application/javascript' });
-          const swUrl = URL.createObjectURL(blob);
-          
-          navigator.serviceWorker.register(swUrl).then(registration => {
-            console.log('Inline SW registered!', registration);
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('SW registered: ', registration);
           }).catch(registrationError => {
             console.log('SW registration failed: ', registrationError);
           });

@@ -1,6 +1,7 @@
 {
   "short_name": "WGP Police",
-  "name": "West Gojjam Zone Police Application",
+  "name": "West Gojjam Zone Police Management System",
+  "description": "A secure, unified platform for incident reporting, officer management, and zone-wide coordination for the West Gojjam Zone Police Department.",
   "icons": [
     {
       "src": "https://img.icons8.com/color/192/police-badge.png",
@@ -15,8 +16,8 @@
       "purpose": "maskable"
     }
   ],
-  "start_url": "./index.html",
+  "start_url": "/",
   "display": "standalone",
   "theme_color": "#002B5B",
-  "background_color": "#002B5B"
+  "background_color": "#f4f7f6"
 }

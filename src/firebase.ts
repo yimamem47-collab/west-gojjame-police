@@ -15,6 +15,7 @@ setPersistence(auth, browserLocalPersistence).catch((err) => {
 });
 
 // Initialize Firestore
+console.log("Firebase Config:", firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const googleProvider = new GoogleAuthProvider();
 
@@ -30,7 +31,7 @@ async function testConnection() {
     console.log("Firestore connection test successful.");
   } catch (error) {
     if (error instanceof Error && (error.message.includes('the client is offline') || error.message.includes('Could not reach Cloud Firestore'))) {
-      console.error("CRITICAL: Firestore connection failed. Please check your internet connection and Firebase configuration.");
+      console.error("CRITICAL: Firestore connection failed. This is usually caused by an Adblocker (like Brave Shields or uBlock Origin) or a strict corporate firewall blocking WebSockets. Please disable your adblocker or try in Incognito mode.");
     }
     // Other errors (like 404) are fine, they still mean we reached the server
   }
