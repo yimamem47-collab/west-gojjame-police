@@ -10,6 +10,7 @@ import { Settings } from './components/Settings';
 import { PoliceServices } from './components/PoliceServices';
 import { AppManual } from './components/AppManual';
 import { QRScanner } from './components/QRScanner';
+import { Scanner } from './components/Scanner';
 import { PoliceIDScanner } from './components/PoliceIDScanner';
 import { Home } from './components/Home';
 import { Auth } from './components/Auth';
@@ -447,13 +448,9 @@ export default function App() {
         </Layout>
 
         {isQRScannerOpen && (
-          <QRScanner 
+          <Scanner 
             lang={lang} 
             onClose={() => setIsQRScannerOpen(false)} 
-            onScan={(text) => {
-              setScanResult(text);
-              setIsQRScannerOpen(false);
-            }} 
           />
         )}
 
