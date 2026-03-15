@@ -4,7 +4,7 @@ import { CommunityReport } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, translations } from '../lib/translations';
 import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 
 interface CommunityReportsProps {
   lang: Language;
@@ -35,6 +35,8 @@ export function CommunityReports({ lang }: CommunityReportsProps) {
         timestamp: doc.data().timestamp?.toDate().toISOString() || new Date().toISOString()
       })) as CommunityReport[];
       setReports(reportsData);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'community_reports');
     });
 
     return () => unsubscribe();
@@ -89,7 +91,7 @@ export function CommunityReports({ lang }: CommunityReportsProps) {
       });
       alert(lang === 'am' ? 'ሪፖርትዎ በተሳካ ሁኔታ ተልኳል' : 'Your report has been submitted successfully');
     } catch (error) {
-      console.error('Error submitting report:', error);
+      handleFirestoreError(error, OperationType.CREATE, 'community_reports');
       alert(lang === 'am' ? 'ሪፖርቱን መላክ አልተቻለም' : 'Failed to submit report');
     } finally {
       setIsSubmitting(false);
@@ -102,7 +104,7 @@ export function CommunityReports({ lang }: CommunityReportsProps) {
         status: newStatus
       });
     } catch (error) {
-      console.error('Error updating status:', error);
+      handleFirestoreError(error, OperationType.UPDATE, `community_reports/${id}`);
     }
   };
 

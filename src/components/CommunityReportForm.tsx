@@ -3,7 +3,7 @@ import { ArrowLeft, Send, CheckCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Language, translations } from '../lib/translations';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 
 interface CommunityReportFormProps {
   lang: Language;
@@ -58,7 +58,7 @@ export function CommunityReportForm({ lang, onBack }: CommunityReportFormProps) 
       });
       setIsSuccess(true);
     } catch (error) {
-      console.error('Error submitting report:', error);
+      handleFirestoreError(error, OperationType.CREATE, 'community_reports');
       alert(lang === 'am' ? 'ሪፖርቱን መላክ አልተቻለም' : 'Failed to submit report');
     } finally {
       setIsSubmitting(false);

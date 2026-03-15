@@ -85,6 +85,18 @@ service cloud.firestore {
              data.category is string && data.category.size() > 0 && data.category.size() < 100;
     }
 
+    function isValidCommunityReport(data) {
+      return data.keys().hasAll(['reporterName', 'reporterPhone', 'location', 'date', 'details', 'status', 'timestamp']) &&
+             data.reporterName is string && data.reporterName.size() >= 3 && data.reporterName.size() < 100 &&
+             data.reporterPhone is string && data.reporterPhone.size() >= 9 && data.reporterPhone.size() < 20 &&
+             (!('reporterEmail' in data) || data.reporterEmail == '' || isValidEmail(data.reporterEmail)) &&
+             data.location is string && data.location.size() > 0 && data.location.size() < 200 &&
+             isValidDateString(data.date) &&
+             data.details is string && data.details.size() >= 10 && data.details.size() < 2000 &&
+             data.status in ['New', 'Reviewed', 'Action Taken'] &&
+             data.timestamp is timestamp;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -130,6 +142,13 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (resource.data.officer_id == request.auth.uid || isAdmin());
       allow create: if isAuthenticated() && (request.resource.data.officer_id == request.auth.uid || isAdmin());
       allow update: if isAuthenticated() && (resource.data.officer_id == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /community_reports/{reportId} {
+      allow read: if isAuthenticated();
+      allow create: if isValidCommunityReport(request.resource.data);
+      allow update: if isAuthenticated() && isValidCommunityReport(request.resource.data);
       allow delete: if isAdmin();
     }
 
