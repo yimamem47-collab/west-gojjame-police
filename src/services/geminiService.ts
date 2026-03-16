@@ -5,9 +5,15 @@ import { GoogleGenAI } from "@google/genai";
  * Uses the @google/genai SDK to interact with Gemini models.
  */
 
-// Initialize the Gemini AI client
-// The API key is automatically provided by the platform environment
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let ai: GoogleGenAI | null = null;
+
+const getAIClient = () => {
+  if (!ai) {
+    const apiKey = process.env.GEMINI_API_KEY || '';
+    ai = new GoogleGenAI({ apiKey });
+  }
+  return ai;
+};
 
 /**
  * Generates a response from Gemini based on the user prompt.
@@ -16,7 +22,8 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
  */
 export const getGeminiResponse = async (userPrompt: string): Promise<string> => {
   try {
-    const response = await ai.models.generateContent({
+    const client = getAIClient();
+    const response = await client.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: userPrompt,
       config: {
