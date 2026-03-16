@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import { X } from 'lucide-react';
 import { Language } from '../lib/translations';
 import { Officer } from '../types';
@@ -11,43 +11,52 @@ interface PoliceIDScannerProps {
 }
 
 export function PoliceIDScanner({ lang, onClose, officers }: PoliceIDScannerProps) {
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
   const [resultText, setResultText] = useState<string>('የQR ኮድ ይጠበቃል...');
+  const [isScanning, setIsScanning] = useState(true);
 
   useEffect(() => {
+    let html5QrCode: Html5Qrcode | null = null;
+
     const startScanner = async () => {
       try {
-        await navigator.mediaDevices.getUserMedia({ video: true });
+        html5QrCode = new Html5Qrcode("reader");
         
-        scannerRef.current = new Html5QrcodeScanner(
-          "reader",
-          { fps: 15, qrbox: 250 },
-          /* verbose= */ false
-        );
-
-        scannerRef.current.render(
-          (text) => {
-            setResultText("ውጤት: " + text);
+        await html5QrCode.start(
+          { facingMode: "environment" }, // Force back camera on mobile
+          {
+            fps: 15,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0
+          },
+          (decodedText) => {
+            if (!isScanning) return;
+            
+            setResultText("ውጤት: " + decodedText);
             if (navigator.vibrate) navigator.vibrate(200);
             
-            // Optional: Check against officers database if needed
             const foundOfficer = officers.find(o => 
-              o.id === text || 
-              o.badgeNumber === text || 
-              text.includes(o.badgeNumber) ||
-              text.includes(o.id)
+              o.id === decodedText || 
+              o.badgeNumber === decodedText || 
+              decodedText.includes(o.badgeNumber) ||
+              decodedText.includes(o.id)
             );
 
             if (foundOfficer) {
-              alert(`የተገኘ መረጃ: ${text}\n\nስም: ${foundOfficer.name}\nማዕረግ: ${foundOfficer.rank}\nሁኔታ: ${foundOfficer.status}`);
+              alert(`የተገኘ መረጃ: ${decodedText}\n\nስም: ${foundOfficer.name}\nማዕረግ: ${foundOfficer.rank}\nሁኔታ: ${foundOfficer.status}`);
             } else {
-              alert("የተገኘ መረጃ: " + text);
+              alert("የተገኘ መረጃ: " + decodedText);
             }
 
-            if (scannerRef.current) {
-              scannerRef.current.pause();
+            // Pause scanning temporarily
+            setIsScanning(false);
+            if (html5QrCode && html5QrCode.isScanning) {
+              html5QrCode.pause();
               setTimeout(() => {
-                if (scannerRef.current) scannerRef.current.resume();
+                if (html5QrCode && html5QrCode.isScanning) {
+                  html5QrCode.resume();
+                  setIsScanning(true);
+                  setResultText('የQR ኮድ ይጠበቃል...');
+                }
               }, 3000);
             }
           },
@@ -57,18 +66,18 @@ export function PoliceIDScanner({ lang, onClose, officers }: PoliceIDScannerProp
         );
       } catch (err) {
         console.error("Camera access error:", err);
-        setResultText('ካሜራ አልተገኘም / Camera not found');
+        setResultText('ካሜራ አልተገኘም / Camera not found. እባክዎ የካሜራ ፍቃድ ይስጡ።');
       }
     };
 
     startScanner();
 
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.clear().catch(err => console.error("Failed to clear scanner", err));
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().catch(err => console.error("Failed to stop scanner", err));
       }
     };
-  }, [officers]);
+  }, [officers, isScanning]);
 
   return (
     <div className="fixed inset-0 z-[200] bg-[#001f3f] text-white text-center font-sans overflow-y-auto">
@@ -83,7 +92,9 @@ export function PoliceIDScanner({ lang, onClose, officers }: PoliceIDScannerProp
         <p className="m-0 text-lg">የመታወቂያ ስካነር</p>
       </div>
       
-      <div id="reader" className="w-[90%] max-w-md mx-auto my-5 rounded-[10px] overflow-hidden bg-black/20"></div>
+      <div className="w-[90%] max-w-md mx-auto my-5">
+        <div id="reader" className="w-full rounded-[10px] overflow-hidden bg-black/20 border-2 border-[#ffcc00]/30"></div>
+      </div>
       
       <div id="result" className="p-5 text-[1.2em] text-[#ffcc00] font-medium break-all">
         {resultText}
