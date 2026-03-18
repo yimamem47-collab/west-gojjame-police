@@ -29,12 +29,31 @@ export function CommunityReports({ lang }: CommunityReportsProps) {
   useEffect(() => {
     const q = query(collection(db, 'community_reports'), orderBy('timestamp', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const reportsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate().toISOString() || new Date().toISOString()
-      })) as CommunityReport[];
-      setReports(reportsData);
+      try {
+        const reportsData = snapshot.docs.map(doc => {
+          const data = doc.data();
+          let timestampStr = new Date().toISOString();
+          
+          if (data.timestamp) {
+            if (typeof data.timestamp.toDate === 'function') {
+              timestampStr = data.timestamp.toDate().toISOString();
+            } else if (typeof data.timestamp === 'string') {
+              timestampStr = data.timestamp;
+            } else if (data.timestamp.seconds) {
+              timestampStr = new Date(data.timestamp.seconds * 1000).toISOString();
+            }
+          }
+
+          return {
+            id: doc.id,
+            ...data,
+            timestamp: timestampStr
+          };
+        }) as CommunityReport[];
+        setReports(reportsData);
+      } catch (err) {
+        console.error("Error parsing community reports:", err);
+      }
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'community_reports');
     });
