@@ -1,3 +1,32 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ምዕራብ ጎጃም ፖሊስ - ጥቆማ መላኪያ</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 20px; text-align: center; margin: 0; }
+        .form-box { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); max-width: 400px; margin: 40px auto; }
+        h2 { color: #003366; font-size: 20px; }
+        input, textarea { width: 90%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
+        .send-btn { width: 95%; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; font-weight: bold; }
+        .status { margin-top: 15px; font-size: 14px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="form-box">
+    <div style="font-size: 40px;">🇪🇹</div>
+    <h2>🔴 የወንጀል ጥቆማ መላኪያ</h2>
+    <p>መረጃውን በትክክል ይሙሉ</p>
+    
+    <input type="text" id="subject" placeholder="የጉዳዩ ርዕስ (ለምሳሌ፡ ስርቆት)">
+    <textarea id="detail" rows="5" placeholder="ዝርዝር መረጃ እዚህ ይጻፉ..."></textarea>
+    
+    <button class="send-btn" id="submitBtn" onclick="sendTip()">ጥቆማውን ላክ</button>
+    <div id="statusMsg" class="status"></div>
+</div>
+
 <script>
     async function sendTip() {
         const token = "8405421128:AAEX7lRd1Q0unboIvb1FIthAIH0QCR7iJXA";
@@ -5,28 +34,54 @@
         
         const subject = document.getElementById("subject").value;
         const detail = document.getElementById("detail").value;
+        const btn = document.getElementById("submitBtn");
+        const status = document.getElementById("statusMsg");
 
         if(subject === "" || detail === "") {
             alert("እባክዎ መጀመሪያ መረጃውን ይሙሉ!");
             return;
         }
 
-        // ለቴሌግራም የሚላከው ጽሑፍ አቀራረብ
-        const message = `🚨 **አዲስ የወንጀል ጥቆማ ደርሷል** 🚨\n\n📌 **ርዕስ:** ${subject}\n📝 **ዝርዝር መረጃ:** ${detail}\n📅 **ቀን:** ${new Date().toLocaleString('am-ET')}`;
+        // ቁልፉን ለጊዜው ማሰናከል
+        btn.disabled = true;
+        btn.innerText = "በመላክ ላይ...";
+        status.innerText = "እባክዎ ይጠብቁ...";
+        status.style.color = "blue";
 
-        const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown`;
+        const message = `🚨 **አዲስ የወንጀል ጥቆማ** 🚨\n\n📌 **ርዕስ:** ${subject}\n📝 **ዝርዝር:** ${detail}\n📅 **ቀን:** ${new Date().toLocaleString('am-ET')}`;
+
+        const url = `https://api.telegram.org/bot${token}/sendMessage`;
 
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: message,
+                    parse_mode: 'Markdown'
+                })
+            });
+
             if(response.ok) {
-                alert("ጥቆማው ለፖሊስ መምሪያው በምስጢር ደርሷል! እናመሰግናለን።");
+                alert("ተሳክቷል! ጥቆማው ለፖሊስ መምሪያው በምስጢር ደርሷል።");
                 document.getElementById("subject").value = "";
                 document.getElementById("detail").value = "";
+                status.innerText = "መረጃው በተሳካ ሁኔታ ተልኳል!";
+                status.style.color = "green";
             } else {
-                alert("መረጃውን መላክ አልተቻለም። እባክዎ በድጋሚ ይሞክሩ።");
+                throw new Error('Failed');
             }
         } catch (error) {
-            alert("የኔትወርክ ችግር አጋጥሟል። ኔትወርክዎን ያረጋግጡ።");
+            alert("ስህተት፡ መረጃው አልተላከም። ኔትወርክዎን ያረጋግጡ።");
+            status.innerText = "መላክ አልተቻለም።";
+            status.style.color = "red";
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "ጥቆማውን ላክ";
         }
     }
 </script>
+
+</body>
+</html>
