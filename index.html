@@ -1,52 +1,36 @@
-<script>
-    function login() {
-        // ተጠቃሚው የጻፈውን ይቀበላል (ባዶ ቦታ ያጠፋል፣ ወደ ትናንሽ ፊደላት ይቀይራል)
-        var user = document.getElementById("username").value.trim().toLowerCase();
-        var pass = document.getElementById("password").value.trim();
-        var errorElement = document.getElementById("errorMessage");
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>የምዕራብ ጎጃም ፖሊስ</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background-color: #e9ecef; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: center; height: 100vh; }
+        .container { background: white; width: 85%; max-width: 400px; margin: auto; padding: 30px; border-radius: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+        .logo { width: 100px; margin-bottom: 15px; }
+        h2 { color: #003366; margin-bottom: 25px; font-size: 22px; }
+        .btn { display: block; width: 100%; padding: 15px; margin: 15px 0; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; text-decoration: none; }
+        .public-btn { background-color: #28a745; color: white; }
+        .police-btn { background-color: #0056b3; color: white; }
+        .public-btn:hover { background-color: #218838; }
+        .police-btn:hover { background-color: #004494; }
+        .footer { font-size: 12px; color: #777; margin-top: 20px; }
+    </style>
+</head>
+<body>
 
-        errorElement.style.display = "none";
+<div class="container">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Flag_of_Ethiopia.svg/255px-Flag_of_Ethiopia.svg.png" alt="Logo" class="logo">
+    <h2>የምዕራብ ጎጃም ዞን ፖሊስ መምሪያ</h2>
+    
+    <a href="public_home.html" class="btn public-btn">🔴 ለህዝብ ጥቆማና መረጃ</a>
 
-        // የሁሉም ጣቢያዎች ዝርዝር (ሊስት)
-        var validUsers = [
-            "finote_selam_main", "finote_selam_city", "finote_selam_station1", 
-            "jabi_tehnan", "jiga_city", "jiga_zuria", 
-            "bure_city", "bure_zuria", 
-            "dembacha_city", "dembacha_zuria", 
-            "d_shindi", "wemberma", "quch", 
-            "sekela", "dega_damot", "quarit", "west_gojjam_hq"
-        ];
+    <a href="login.html" class="btn police-btn">🔵 ለፖሊስ አባላት (Login)</a>
 
-        // ቼክ የማድረጊያ ሎጂክ (Password: admin)
-        if (validUsers.includes(user) && pass === "admin") {
-            // ስሙ እና ፓስወርዱ ትክክል ከሆነ ወደ ዳሽቦርድ ይውሰደው
-            window.location.href = "dashboard.html";
-        } else {
-            // ከተሳሳተ ቀዩን ማስጠንቀቂያ ያሳያል
-            errorElement.innerText = "የወረዳ ስም ወይም ሚስጥራዊ ቁጥር ተሳስቷል! እባክዎ በትክክል ይሞክሩ።";
-            errorElement.style.display = "block";
-            document.getElementById("password").value = ""; // ፓስወርዱን ያጠፋል
-        }
-    }
-</script>
-<hr>
-<p>ፖሊስ ባልሆኑ አካላት ጥቆማ ለመስጠት፡</p>
-<button style="background-color: #28a745;" onclick="publicReport()">ጥቆማ ስጥ (Public Report)</button>
+    <div class="footer">
+        ፈጣን ጥቆማ | የትራፊክ አደጋ | የወንጀል መረጃ
+    </div>
+</div>
 
-<script>
-    function publicReport() {
-        // ህዝቡ ጥቆማ የሚሰጥበት ልዩ ገጽ (Public Page)
-        window.location.href = "public_report.html";
-    }
-</script>
-<button onclick="sendToTelegram()" style="background-color: #0088cc; color: white; padding: 15px; border-radius: 10px; border: none; width: 100%; font-weight: bold;">
-    🔵 በቴሌግራም ፈጣን ጥቆማ ስጥ
-</button>
-
-<script>
-    function sendToTelegram() {
-        // የዞኑ ፖሊስ የቴሌግራም ተጠቃሚ ስም (Username) እዚህ ይግባ
-        // ለምሳሌ @WestGojjamPolice ከሆነ እንዲህ ይጻፋል፡
-        window.location.href = "https://t.me/WestGojjamPolice_Bot"; 
-    }
-</script>
+</body>
+</html>
