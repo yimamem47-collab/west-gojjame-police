@@ -5,18 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ምዕራብ ጎጃም ፖሊስ</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background-color: #f0f2f5; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 320px; }
-        .btn { display: block; padding: 15px; margin: 15px 0; border-radius: 10px; font-size: 18px; font-weight: bold; text-decoration: none; color: white; transition: 0.3s; }
-        .public-btn { background-color: #28a745; }
-        .police-btn { background-color: #0056b3; }
+        body { font-family: sans-serif; background-color: #f0f2f5; text-align: center; padding: 20px; }
+        .box { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); max-width: 380px; margin: auto; }
+        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; color: white; font-size: 16px; }
+        .send-btn { background-color: #28a745; margin-top: 10px; }
+        .police-btn { background-color: #0056b3; margin-top: 20px; }
     </style>
 </head>
 <body>
-<div class="container">
-    <h2>ምዕራብ ጎጃም ፖሊስ</h2>
-    <a href="public_home.html" class="btn public-btn">🔴 ለህዝብ (ጥቆማ)</a>
-    <a href="login.html" class="btn police-btn">🔵 ለፖሊስ (Login)</a>
+<div class="box">
+    <h2>🇪🇹 ምዕራብ ጎጃም ፖሊስ</h2>
+    <p>የወንጀል ጥቆማ መላኪያ</p>
+    <input type="text" id="subject" placeholder="የጉዳዩ ርዕስ">
+    <textarea id="detail" rows="5" placeholder="ዝርዝር መረጃ እዚህ ይጻፉ..."></textarea>
+    <button class="btn send-btn" onclick="sendTip()">🔴 ጥቆማውን ላክ</button>
+    <hr style="margin: 25px 0;">
+    <button class="btn police-btn" onclick="alert('ይህ ክፍል በቅርቡ ይከፈታል!')">🔵 ለፖሊስ አባላት (Login)</button>
 </div>
+<script>
+    async function sendTip() {
+        const token = "8405421128:AAEX7lRd1Q0unboIvb1FIthAIH0QCR7iJXA";
+        const chatId = "-1003878859973";
+        const sub = document.getElementById("subject").value;
+        const det = document.getElementById("detail").value;
+        if(!sub || !det) { alert("መረጃ ይሙሉ!"); return; }
+        const msg = `🚨 አዲስ ጥቆማ:\n📌 ርዕስ: ${sub}\n📝 ዝርዝር: ${det}`;
+        await fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(msg)}`);
+        alert("ጥቆማው ተልኳል!");
+        document.getElementById("subject").value = "";
+        document.getElementById("detail").value = "";
+    }
+</script>
 </body>
 </html>
