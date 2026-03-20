@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>የፖሊስ ዳሽቦርድ - ምዕራብ ጎጃም</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; margin: 0; text-align: center; }
+        .header { background: #003366; color: white; padding: 15px; font-size: 18px; font-weight: bold; }
+        .container { padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        #reader { width: 100%; border-radius: 10px; border: 2px solid #003366; }
+        .result-box { margin-top: 20px; padding: 15px; background: #e7f3ff; border-radius: 10px; color: #003366; font-weight: bold; }
+        .nav-btn { display: block; background: #0056b3; color: white; padding: 12px; border-radius: 8px; text-decoration: none; margin: 10px 0; font-size: 16px; }
+        .btn-logout { background: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 8px; text-decoration: none; display: inline-block; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="header">የምዕራብ ጎጃም ፖሊስ የሥራ ገጽ</div>
+
+<div class="container">
+    <div class="card">
+        <h3>🔍 መታወቂያ ይፈትሹ (QR Scanner)</h3>
+        <div id="reader"></div>
+        <div id="result" class="result-box">የፍተሻ ውጤት እዚህ ይታያል...</div>
+    </div>
+
+    <div class="card">
+        <h3>ተጨማሪ አገልግሎቶች</h3>
+        <a href="#" class="nav-btn">የአባላት ዝርዝር</a>
+        <a href="#" class="nav-btn">ሪፖርት ላክ</a>
+        <a href="index.html" class="btn-logout">ውጣ (Logout)</a>
+    </div>
+</div>
+
+<script>
+    function onScanSuccess(decodedText, decodedResult) {
+        document.getElementById('result').innerHTML = "የተገኘ መረጃ፦ <br>" + decodedText;
+        // መረጃው ለምሳሌ ወደ Firebase እንዲሄድ እዚህ ማዘዝ ይቻላል
+    }
+    var html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+    html5QrcodeScanner.render(onScanSuccess);
+</script>
+
+</body>
+</html>
