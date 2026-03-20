@@ -1,35 +1,44 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>West Gojjam Zone Police | Management System</title>
-    
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#002B5B" />
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Police System">
-    
-    <!-- Web App Manifest -->
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="apple-touch-icon" href="https://img.icons8.com/color/192/police-badge.png" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then(registration => {
-            console.log('SW registered: ', registration);
-          }).catch(registrationError => {
-            console.log('SW registration failed: ', registrationError);
-          });
-        });
-      }
-    </script>
-  </body>
-</html>
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>የምዕራብ ጎጃም ፖሊስ መግቢያ</title>
+    <style>
+        body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f2f5; margin: 0; }
+        .login-container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 300px; text-align: center; }
+        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }
+        button { width: 95%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        .error { color: red; font-size: 12px; display: none; }
+    </style>
+</head>
+<body>
 
+<div class="login-container">
+    <h2>የምዕራብ ጎጃም ፖሊስ</h2>
+    <p>ወረዳዎን መርጠው ይግቡ</p>
+    <input type="text" id="username" placeholder="የወረዳ ስም (Username)">
+    <input type="password" id="password" placeholder="ሚስጥራዊ ቁጥር (Password)">
+    <p id="errorMessage" class="error">ትክክለኛ መረጃ አላስገቡም!</p>
+    <button onclick="login()">ግባ</button>
+</div>
+
+<script>
+    function login() {
+        var user = document.getElementById("username").value;
+        var pass = document.getElementById("password").value;
+
+        // እዚህ ጋር የወረዳዎችን ስም እና ፓስወርድ መመዝገብ ትችላለህ
+        if (user === "finote_selam_police" && pass === "1234") {
+            window.location.href = "dashboard.html"; // ወደ ዋናው ዳሽቦርድ ይወስደዋል
+        } else if (user === "dembacha_police" && pass === "5678") {
+            window.location.href = "dashboard.html";
+        } else {
+            document.getElementById("errorMessage").style.display = "block";
+        }
+    }
+</script>
+
+</body>
+</html>
