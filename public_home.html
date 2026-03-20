@@ -3,22 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ጥቆማ መላኪያ</title>
+    <title>ጥቆማ መላኪያ - ምዕራብ ጎጃም ፖሊስ</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 20px; text-align: center; }
-        .form-box { background: white; padding: 25px; border-radius: 15px; max-width: 400px; margin: auto; }
-        input, textarea { width: 90%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
-        .send-btn { width: 95%; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 8px; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 20px; text-align: center; margin: 0; }
+        .form-box { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); max-width: 400px; margin: 50px auto; }
+        h2 { color: #003366; }
+        input, textarea { width: 90%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
+        .send-btn { width: 95%; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; transition: 0.3s; }
+        .send-btn:hover { background-color: #218838; }
+        .back-link { display: inline-block; margin-top: 15px; color: #666; text-decoration: none; font-size: 14px; }
     </style>
 </head>
 <body>
+
 <div class="form-box">
-    <h2>🔴 የጥቆማ መላኪያ ቅጽ</h2>
-    <input type="text" id="subject" placeholder="የጉዳዩ ርዕስ">
-    <textarea id="detail" rows="4" placeholder="ዝርዝር መረጃ..."></textarea>
-    <button class="send-btn" onclick="alert('ጥቆማው ደርሷል!')">ላክ</button>
-    <br><br>
-    <a href="index.html">⬅️ ተመለስ</a>
+    <h2>🔴 የወንጀል ጥቆማ መላኪያ</h2>
+    <p>መረጃውን በትክክል ይሙሉ</p>
+    <input type="text" id="subject" placeholder="የጉዳዩ ርዕስ (ለምሳሌ፡ ስርቆት)">
+    <textarea id="detail" rows="4" placeholder="ዝርዝር መረጃ እዚህ ይጻፉ..."></textarea>
+    <button class="send-btn" onclick="sendTip()">ጥቆማውን ላክ</button>
+    <br>
+    <a href="index.html" class="back-link">⬅️ ወደ ዋናው ምርጫ ተመለስ</a>
 </div>
+
+<script>
+    function sendTip() {
+        var subject = document.getElementById("subject").value;
+        if(subject == "") {
+            alert("እባክዎ መጀመሪያ ርዕስ ይጻፉ!");
+        } else {
+            alert("ጥቆማው ለፖሊስ ደርሷል! እናመሰግናለን።");
+            window.location.href = "index.html";
+        }
+    }
+</script>
+
 </body>
 </html>
