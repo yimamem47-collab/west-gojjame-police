@@ -4,37 +4,106 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ምዕራብ ጎጃም ፖሊስ</title>
-    <style>
-        body { font-family: sans-serif; background-color: #f0f2f5; text-align: center; padding: 20px; }
-        .box { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); max-width: 380px; margin: auto; }
+    <script src="https://unpkg.com/html5-qrcode"></script> <style>
+        body { font-family: sans-serif; background-color: #f0f2f5; text-align: center; padding: 20px; margin: 0; }
+        .box { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+        .btn { width: 100%; padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; color: white; font-size: 16px; margin: 10px 0; }
+        .public-btn { background-color: #28a745; }
+        .police-btn { background-color: #0056b3; }
+        .back-btn { background-color: #6c757d; }
         input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; color: white; font-size: 16px; }
-        .send-btn { background-color: #28a745; margin-top: 10px; }
-        .police-btn { background-color: #0056b3; margin-top: 20px; }
+        #public-section, #police-section, #scanner-section { display: none; }
+        #reader { width: 100%; margin-top: 20px; }
     </style>
 </head>
 <body>
-<div class="box">
-    <h2>🇪🇹 ምዕራብ ጎጃም ፖሊስ</h2>
-    <p>የወንጀል ጥቆማ መላኪያ</p>
-    <input type="text" id="subject" placeholder="የጉዳዩ ርዕስ">
-    <textarea id="detail" rows="5" placeholder="ዝርዝር መረጃ እዚህ ይጻፉ..."></textarea>
-    <button class="btn send-btn" onclick="sendTip()">🔴 ጥቆማውን ላክ</button>
-    <hr style="margin: 25px 0;">
-    <button class="btn police-btn" onclick="alert('ይህ ክፍል በቅርቡ ይከፈታል!')">🔵 ለፖሊስ አባላት (Login)</button>
+
+<div id="main-page" class="box">
+    <div style="font-size: 50px;">🇪🇹</div>
+    <h2>ምዕራብ ጎጃም ፖሊስ</h2>
+    <button class="btn public-btn" onclick="showSection('public-section')">🔴 ለህዝብ (ጥቆማ መላኪያ)</button>
+    <button class="btn police-btn" onclick="showSection('police-section')">🔵 ለፖሊስ አባላት (Login/QR)</button>
 </div>
+
+<div id="public-section" class="box">
+    <h3>🚨 የወንጀል ጥቆማ መላኪያ</h3>
+    <input type="text" id="subject" placeholder="የጉዳዩ ርዕስ">
+    <textarea id="detail" rows="5" placeholder="ዝርዝር መረጃ..."></textarea>
+    <button class="btn public-btn" onclick="sendTip()">ጥቆማውን ላክ</button>
+    <button class="btn back-btn" onclick="showSection('main-page')">ተመለስ</button>
+</div>
+
+<div id="police-section" class="box">
+    <h3>🔵 የፖሊስ መግቢያ</h3>
+    <input type="text" id="user" placeholder="የመለያ ስም">
+    <input type="password" id="pass" placeholder="የይለፍ ቃል">
+    <button class="btn police-btn" onclick="checkLogin()">ግባ</button>
+    <button class="btn back-btn" onclick="showSection('main-page')">ተመለስ</button>
+</div>
+
+<div id="scanner-section" class="box">
+    <h3>📷 QR ኮድ ስካነር</h3>
+    <div id="reader"></div>
+    <p id="result" style="font-weight: bold; color: green;"></p>
+    <button class="btn back-btn" onclick="stopScanner()">ተመለስ</button>
+</div>
+
 <script>
+    let html5QrCode;
+
+    function showSection(id) {
+        document.getElementById('main-page').style.display = 'none';
+        document.getElementById('public-section').style.display = 'none';
+        document.getElementById('police-section').style.display = 'none';
+        document.getElementById('scanner-section').style.display = 'none';
+        document.getElementById(id).style.display = 'block';
+    }
+
+    // የህዝብ ጥቆማ መላኪያ
     async function sendTip() {
         const token = "8405421128:AAEX7lRd1Q0unboIvb1FIthAIH0QCR7iJXA";
         const chatId = "-1003878859973";
         const sub = document.getElementById("subject").value;
         const det = document.getElementById("detail").value;
         if(!sub || !det) { alert("መረጃ ይሙሉ!"); return; }
+
         const msg = `🚨 አዲስ ጥቆማ:\n📌 ርዕስ: ${sub}\n📝 ዝርዝር: ${det}`;
         await fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(msg)}`);
         alert("ጥቆማው ተልኳል!");
-        document.getElementById("subject").value = "";
-        document.getElementById("detail").value = "";
+        showSection('main-page');
+    }
+
+    // የፖሊስ መግቢያ (ለጊዜው መለያው police ፓስወርዱ 1234 ነው)
+    function checkLogin() {
+        const u = document.getElementById("user").value;
+        const p = document.getElementById("pass").value;
+        if(u === "police" && p === "1234") {
+            showSection('scanner-section');
+            startScanner();
+        } else {
+            alert("የተሳሳተ መለያ!");
+        }
+    }
+
+    // QR ስካነሩን ማስጀመር
+    function startScanner() {
+        html5QrCode = new Html5Qrcode("reader");
+        html5QrCode.start(
+            { facingMode: "environment" }, 
+            { fps: 10, qrbox: 250 },
+            qrCodeMessage => {
+                document.getElementById("result").innerText = "የተገኘ መረጃ: " + qrCodeMessage;
+                // እዚህ ጋር ስካን የተደረገው መረጃ የት መሄድ እንዳለበት መወሰን ይቻላል
+            }
+        ).catch(err => alert("ካሜራ መክፈት አልተቻለም!"));
+    }
+
+    function stopScanner() {
+        if(html5QrCode) {
+            html5QrCode.stop().then(() => showSection('main-page'));
+        } else {
+            showSection('main-page');
+        }
     }
 </script>
 </body>
