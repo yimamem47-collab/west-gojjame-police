@@ -140,8 +140,8 @@ export default function ZoneReports({ reports, officers, onAddReport, language, 
   };
 
   const filteredReports = reports.filter(report => {
-    const matchesSearch = report.officer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         report.wereda.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (report.officer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (report.wereda || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesWereda = filterWereda === 'all' || report.wereda === filterWereda;
     const matchesType = filterType === 'all' || report.report_type === filterType;
     return matchesSearch && matchesWereda && matchesType;

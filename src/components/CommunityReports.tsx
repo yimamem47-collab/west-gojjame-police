@@ -62,9 +62,9 @@ export function CommunityReports({ lang }: CommunityReportsProps) {
   }, []);
 
   const filteredReports = reports.filter(r => 
-    r.reporterName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.details.toLowerCase().includes(searchTerm.toLowerCase())
+    (r.reporterName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (r.location || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (r.details || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSubmit = async (e: React.FormEvent) => {

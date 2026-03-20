@@ -1,132 +1,35 @@
-<!DOCTYPE html>
-<html lang="am">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ምዕራብ ጎጃም ፖሊስ</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <style>
-        body { font-family: sans-serif; background-color: #f0f2f5; text-align: center; padding: 20px; margin: 0; }
-        .box { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
-        .btn { width: 100%; padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; color: white; font-size: 16px; margin: 10px 0; }
-        .public-btn { background-color: #28a745; }
-        .police-btn { background-color: #0056b3; }
-        .back-btn { background-color: #6c757d; }
-        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        #public-section, #police-section, #scanner-section { display: none; }
-        #reader { width: 100%; margin-top: 20px; }
-    </style>
-</head>
-<body>
-
-<div id="main-page" class="box">
-    <div style="font-size: 50px;">🇪🇹</div>
-    <h2>ምዕራብ ጎጃም ፖሊስ</h2>
-    <button class="btn public-btn" onclick="showSection('public-section')">🔴 ለህዝብ (ጥቆማ መላኪያ)</button>
-    <button class="btn police-btn" onclick="showSection('police-section')">🔵 ለፖሊስ አባላት (Login/QR)</button>
-</div>
-
-<div id="public-section" class="box">
-    <h3>🚨 የወንጀል ጥቆማ መላኪያ</h3>
-    <input type="text" id="subject" placeholder="የጉዳዩ ርዕስ">
-    <textarea id="detail" rows="5" placeholder="ዝርዝር መረጃ..."></textarea>
-    <button class="btn public-btn" id="sendBtn" onclick="sendTip()">ጥቆማውን ላክ</button>
-    <button class="btn back-btn" onclick="showSection('main-page')">ተመለስ</button>
-</div>
-
-<div id="police-section" class="box">
-    <h3>🔵 የፖሊስ መግቢያ</h3>
-    <input type="text" id="user" placeholder="የመለያ ስም">
-    <input type="password" id="pass" placeholder="የይለፍ ቃል">
-    <button class="btn police-btn" onclick="checkLogin()">ግባ</button>
-    <button class="btn back-btn" onclick="showSection('main-page')">ተመለስ</button>
-</div>
-
-<div id="scanner-section" class="box">
-    <h3>📷 QR ኮድ ስካነር</h3>
-    <div id="reader"></div>
-    <p id="result" style="font-weight: bold; color: green;"></p>
-    <button class="btn back-btn" onclick="stopScanner()">ተመለስ</button>
-</div>
-
-<script>
-    const SHEETDB_URL = "https://sheetdb.io/api/v1/h6k7wyyyvukda";
-    const TELEGRAM_TOKEN = "8405421128:AAEX7lRd1Q0unboIvb1FIthAIH0QCR7iJXA";
-    const CHAT_ID = "-1003878859973";
-
-    function showSection(id) {
-        document.getElementById('main-page').style.display = 'none';
-        document.getElementById('public-section').style.display = 'none';
-        document.getElementById('police-section').style.display = 'none';
-        document.getElementById('scanner-section').style.display = 'none';
-        document.getElementById(id).style.display = 'block';
-    }
-
-    async function sendTip() {
-        const sub = document.getElementById("subject").value;
-        const det = document.getElementById("detail").value;
-        const date = new Date().toLocaleString('am-ET');
-        const btn = document.getElementById("sendBtn");
-
-        if(!sub || !det) { alert("መረጃ ይሙሉ!"); return; }
-        
-        btn.disabled = true;
-        btn.innerText = "በመላክ ላይ...";
-
-        const msg = `🚨 አዲስ ጥቆማ:\n📌 ርዕስ: ${sub}\n📝 ዝርዝር: ${det}\n📅 ቀን: ${date}`;
-        fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}`);
-
-        try {
-            const response = await fetch(SHEETDB_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    "data": [{ "date": date, "subject": sub, "detail": det, "status": "አዲስ" }]
-                })
-            });
-
-            if(response.ok) {
-                alert("ጥቆማው ለፖሊስ ደርሷል፤ በመዝገብም ሰፍሯል!");
-                document.getElementById("subject").value = "";
-                document.getElementById("detail").value = "";
-                showSection('main-page');
-            }
-        } catch (err) {
-            alert("ስህተት ተፈጥሯል፤ ግን ቴሌግራም ላይ ተልኳል።");
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "ጥቆማውን ላክ";
-        }
-    }
-
-    function checkLogin() {
-        const u = document.getElementById("user").value;
-        const p = document.getElementById("pass").value;
-        if(u === "police" && p === "1234") {
-            showSection('scanner-section');
-            startScanner();
-        } else {
-            alert("የተሳሳተ መለያ!");
-        }
-    }
-
-    let html5QrCode;
-    function startScanner() {
-        html5QrCode = new Html5Qrcode("reader");
-        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
-            qrCodeMessage => { document.getElementById("result").innerText = "መረጃ: " + qrCodeMessage; }
-        ).catch(err => alert("ካሜራ መክፈት አልተቻለም!"));
-    }
-
-    function stopScanner() {
-        if(html5QrCode) { 
-            html5QrCode.stop().then(() => {
-                showSection('main-page');
-            }).catch(() => showSection('main-page'));
-        } else { 
-            showSection('main-page'); 
-        }
-    }
-</script>
-</body>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>West Gojjam Zone Police | Management System</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#002B5B" />
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Police System">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="https://img.icons8.com/color/192/police-badge.png" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('SW registered: ', registration);
+          }).catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+          });
+        });
+      }
+    </script>
+  </body>
 </html>
+

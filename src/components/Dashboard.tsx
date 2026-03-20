@@ -120,9 +120,9 @@ export function Dashboard({
     const officer = officers.find(o => o.id === activity.officerId);
     const searchLower = dashboardSearch.toLowerCase();
     return (
-      activity.title.toLowerCase().includes(searchLower) ||
-      activity.officer.toLowerCase().includes(searchLower) ||
-      (officer && officer.badgeNumber.toLowerCase().includes(searchLower))
+      (activity.title || '').toLowerCase().includes(searchLower) ||
+      (activity.officer || '').toLowerCase().includes(searchLower) ||
+      (officer && (officer.badgeNumber || '').toLowerCase().includes(searchLower))
     );
   }).sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 6);
 
@@ -185,6 +185,25 @@ export function Dashboard({
             </a>
           </div>
         ))}
+      </div>
+
+      {/* Stations List Section */}
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-brand-accent/10 rounded-lg border border-brand-accent/20">
+              <Shield size={20} className="text-brand-accent" />
+            </div>
+            <h3 className="text-lg font-bold">{t.dashboardOverview}</h3>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {Object.values(t.stations).map((station, i) => (
+            <span key={i} className="px-3 py-1.5 bg-brand-bg/50 border border-brand-border rounded-lg text-sm font-medium text-brand-text-secondary hover:text-brand-text-primary hover:border-brand-accent/50 transition-colors cursor-default">
+              {station as string}
+            </span>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

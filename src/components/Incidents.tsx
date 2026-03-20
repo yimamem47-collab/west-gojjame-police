@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, Plus, Search, Trash2, Edit2, Calendar, MapPin, Camera, Image as ImageIcon } from 'lucide-react';
+import { AlertTriangle, Plus, Search, Trash2, Edit2, Calendar, MapPin, Camera, Image as ImageIcon, Map, List } from 'lucide-react';
 import { Incident, Officer } from '../types';
 import { motion } from 'motion/react';
 import { Language, translations } from '../lib/translations';
+import { IncidentMap } from './IncidentMap';
 
 interface IncidentsProps {
   incidents: Incident[];
@@ -17,6 +18,7 @@ interface IncidentsProps {
 export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onUpdate, onDelete }: IncidentsProps) {
   const t = translations[lang];
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingIncident, setEditingIncident] = useState<Incident | null>(null);
 
@@ -30,6 +32,8 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
           status: incident.status,
           date: incident.date,
           location: incident.location,
+          lat: incident.lat,
+          lng: incident.lng,
           officerId: incident.officerId,
           filingStation: incident.filingStation,
           recordingOfficerName: incident.recordingOfficerName,
@@ -47,6 +51,8 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
     status: 'Open',
     date: new Date().toISOString().split('T')[0],
     location: '',
+    lat: undefined,
+    lng: undefined,
     officerId: '',
     filingStation: '',
     recordingOfficerName: '',
@@ -93,10 +99,10 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
   };
 
   const filteredIncidents = incidents.filter(i => 
-    i.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    i.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    i.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    i.recordingOfficerName.toLowerCase().includes(searchTerm.toLowerCase())
+    (i.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (i.location || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (i.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (i.recordingOfficerName || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -140,6 +146,8 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
       status: 'Open', 
       date: new Date().toISOString().split('T')[0], 
       location: '', 
+      lat: undefined,
+      lng: undefined,
       officerId: officers[0]?.id || '',
       filingStation: '',
       recordingOfficerName: '',
@@ -157,6 +165,8 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
       status: incident.status,
       date: incident.date,
       location: incident.location,
+      lat: incident.lat,
+      lng: incident.lng,
       officerId: incident.officerId,
       filingStation: incident.filingStation || '',
       recordingOfficerName: incident.recordingOfficerName || '',
@@ -175,7 +185,9 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
       title: '', 
       status: 'Open', 
       date: new Date().toISOString().split('T')[0], 
-      location: '', 
+      location: '',
+      lat: undefined,
+      lng: undefined,
       officerId: officers[0]?.id || '',
       filingStation: '',
       recordingOfficerName: '',
@@ -193,10 +205,28 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
           <h1 className="text-3xl font-bold tracking-tight">{t.crime}</h1>
           <p className="text-brand-text-secondary">Official record of reported incidents in the zone.</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="btn-primary">
-          <Plus size={18} />
-          {t.newReport}
-        </button>
+        <div className="flex items-center gap-4">
+          <div className="flex bg-brand-bg/50 p-1 rounded-lg border border-brand-border">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-4 py-2 rounded-md flex items-center gap-2 text-sm font-medium transition-colors ${viewMode === 'list' ? 'bg-brand-accent text-white' : 'text-brand-text-secondary hover:text-brand-text-primary'}`}
+            >
+              <List size={16} />
+              List
+            </button>
+            <button
+              onClick={() => setViewMode('map')}
+              className={`px-4 py-2 rounded-md flex items-center gap-2 text-sm font-medium transition-colors ${viewMode === 'map' ? 'bg-brand-accent text-white' : 'text-brand-text-secondary hover:text-brand-text-primary'}`}
+            >
+              <Map size={16} />
+              Map
+            </button>
+          </div>
+          <button onClick={() => setIsModalOpen(true)} className="btn-primary">
+            <Plus size={18} />
+            {t.newReport}
+          </button>
+        </div>
       </div>
 
       <div className="glass-card overflow-hidden">
@@ -213,7 +243,12 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {viewMode === 'map' ? (
+          <div className="p-6">
+            <IncidentMap incidents={filteredIncidents} />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-brand-bg/50 text-brand-text-secondary text-sm uppercase tracking-wider">
@@ -290,6 +325,7 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       {/* Modal */}
@@ -350,10 +386,34 @@ export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onU
                   <input 
                     required
                     type="text" 
-                    className="input-field" 
+                    className="input-field mb-3" 
                     value={newIncident.location}
                     onChange={(e) => setNewIncident({...newIncident, location: e.target.value})}
                   />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-brand-text-secondary mb-1">Latitude (Optional)</label>
+                      <input 
+                        type="number" 
+                        step="any"
+                        className="input-field text-sm" 
+                        placeholder="e.g. 11.5936"
+                        value={newIncident.lat || ''}
+                        onChange={(e) => setNewIncident({...newIncident, lat: e.target.value ? parseFloat(e.target.value) : undefined})}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-brand-text-secondary mb-1">Longitude (Optional)</label>
+                      <input 
+                        type="number" 
+                        step="any"
+                        className="input-field text-sm" 
+                        placeholder="e.g. 37.3908"
+                        value={newIncident.lng || ''}
+                        onChange={(e) => setNewIncident({...newIncident, lng: e.target.value ? parseFloat(e.target.value) : undefined})}
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div className="bg-brand-bg/50 p-4 rounded-xl border border-brand-border shadow-sm">
                   <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.filingStation}</label>

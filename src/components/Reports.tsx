@@ -63,9 +63,9 @@ export function Reports({ reports, officers, lang, initialEditId, onAdd, onUpdat
   }, [officers, newReport.officerId]);
 
   const filteredReports = reports.filter(r => 
-    r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.recordingOfficerName.toLowerCase().includes(searchTerm.toLowerCase())
+    (r.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (r.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (r.recordingOfficerName || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSubmit = (e: React.FormEvent) => {

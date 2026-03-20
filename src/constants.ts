@@ -17,12 +17,12 @@ export const INITIAL_OFFICERS: Officer[] = [
 ];
 
 export const INITIAL_INCIDENTS: Incident[] = [
-  { id: '1', title: 'Traffic Accident - Finote Selam', status: 'Open', date: '2024-05-15', location: 'Main Highway', officerId: '2', filingStation: 'ፍኖተ ሰላም ከተማ', recordingOfficerName: 'Abebe Bikila', recordingOfficerRank: 'commander', type: 'Traffic', category: 'vehicleCollision' },
-  { id: '2', title: 'Theft Report - Market Area', status: 'In Progress', date: '2024-05-18', location: 'Central Market', officerId: '5', filingStation: 'ቡሬ ከተማ', recordingOfficerName: 'Kebede Ayalew', recordingOfficerRank: 'inspector', type: 'Crime', category: 'burglary' },
-  { id: '3', title: 'Public Disturbance', status: 'Closed', date: '2024-05-10', location: 'Stadium Area', officerId: '11', filingStation: 'ቡሬ ከተማ', recordingOfficerName: 'Aster Molla', recordingOfficerRank: 'sergeant', type: 'Crime', category: 'other' },
-  { id: '4', title: 'Illegal Arms Trafficking', status: 'Open', date: '2024-05-20', location: 'Border Checkpoint', officerId: '1', filingStation: 'ፍኖተ ሰላም ከተማ', recordingOfficerName: 'Derese G.', recordingOfficerRank: 'assistantCommissioner', type: 'Crime', category: 'illegalArms' },
-  { id: '5', title: 'Minor Traffic Collision', status: 'Closed', date: '2024-05-22', location: 'City Center', officerId: '13', filingStation: 'ደምበጫ ከተማ', recordingOfficerName: 'Solomon Tekle', recordingOfficerRank: 'constable', type: 'Traffic', category: 'minorInjury' },
-  { id: '6', title: 'Fraud Investigation', status: 'In Progress', date: '2024-05-25', location: 'Bank District', officerId: '7', filingStation: 'ደምበጫ ከተማ', recordingOfficerName: 'Hana T.', recordingOfficerRank: 'assistantInspector', type: 'Crime', category: 'fraud' },
+  { id: '1', title: 'Traffic Accident - Finote Selam', status: 'Open', date: '2024-05-15', location: 'Main Highway', lat: 10.70, lng: 37.26, officerId: '2', filingStation: 'ፍኖተ ሰላም ከተማ', recordingOfficerName: 'Abebe Bikila', recordingOfficerRank: 'commander', type: 'Traffic', category: 'vehicleCollision' },
+  { id: '2', title: 'Theft Report - Market Area', status: 'In Progress', date: '2024-05-18', location: 'Central Market', lat: 10.70, lng: 37.06, officerId: '5', filingStation: 'ቡሬ ከተማ', recordingOfficerName: 'Kebede Ayalew', recordingOfficerRank: 'inspector', type: 'Crime', category: 'burglary' },
+  { id: '3', title: 'Public Disturbance', status: 'Closed', date: '2024-05-10', location: 'Stadium Area', lat: 10.71, lng: 37.07, officerId: '11', filingStation: 'ቡሬ ከተማ', recordingOfficerName: 'Aster Molla', recordingOfficerRank: 'sergeant', type: 'Crime', category: 'other' },
+  { id: '4', title: 'Illegal Arms Trafficking', status: 'Open', date: '2024-05-20', location: 'Border Checkpoint', lat: 10.68, lng: 37.28, officerId: '1', filingStation: 'ፍኖተ ሰላም ከተማ', recordingOfficerName: 'Derese G.', recordingOfficerRank: 'assistantCommissioner', type: 'Crime', category: 'illegalArms' },
+  { id: '5', title: 'Minor Traffic Collision', status: 'Closed', date: '2024-05-22', location: 'City Center', lat: 10.55, lng: 37.48, officerId: '13', filingStation: 'ደምበጫ ከተማ', recordingOfficerName: 'Solomon Tekle', recordingOfficerRank: 'constable', type: 'Traffic', category: 'minorInjury' },
+  { id: '6', title: 'Fraud Investigation', status: 'In Progress', date: '2024-05-25', location: 'Bank District', lat: 10.56, lng: 37.49, officerId: '7', filingStation: 'ደምበጫ ከተማ', recordingOfficerName: 'Hana T.', recordingOfficerRank: 'assistantInspector', type: 'Crime', category: 'fraud' },
 ];
 
 export const INITIAL_ASSIGNMENTS: Assignment[] = [

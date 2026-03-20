@@ -8,6 +8,8 @@ export interface Incident {
   status: IncidentStatus;
   date: string;
   location: string;
+  lat?: number;
+  lng?: number;
   officerId: string;
   filingStation: string;
   recordingOfficerName: string;

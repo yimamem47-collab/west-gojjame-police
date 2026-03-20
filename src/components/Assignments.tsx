@@ -38,7 +38,7 @@ export function Assignments({ assignments, incidents, officers, lang, onAdd, onU
   }, [officers, incidents, newAssignment.officerId, newAssignment.incidentId]);
 
   const filteredAssignments = assignments.filter(a => 
-    a.title.toLowerCase().includes(searchTerm.toLowerCase())
+    (a.title || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSubmit = (e: React.FormEvent) => {

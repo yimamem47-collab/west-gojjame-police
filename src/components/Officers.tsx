@@ -28,9 +28,9 @@ export function Officers({ officers, lang, onAdd, onUpdate, onDelete }: Officers
   });
 
   const filteredOfficers = officers.filter(o => 
-    o.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    o.badgeNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    o.rank.toLowerCase().includes(searchTerm.toLowerCase())
+    (o.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (o.badgeNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (o.rank || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSubmit = (e: React.FormEvent) => {
