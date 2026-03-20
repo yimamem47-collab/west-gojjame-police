@@ -108,3 +108,25 @@
 </script>
 </body>
 </html>
+<div id="generator-section" class="box" style="display:none;">
+    <h3>🖨️ QR ኮድ ማመንጫ</h3>
+    <input type="text" id="qr-text" placeholder="ወደ QR የሚቀየር መረጃ ይጻፉ">
+    <button class="btn police-btn" onclick="generateQR()">ኮዱን አውጣ</button>
+    <div id="qrcode-output" style="margin-top:20px; display:flex; justify-content:center;"></div>
+    <button class="btn back-btn" onclick="showSection('scanner-section')">⬅️ ወደ ስካነር ተመለስ</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script>
+    function generateQR() {
+        const text = document.getElementById("qr-text").value;
+        const output = document.getElementById("qrcode-output");
+        output.innerHTML = ""; // የቆየውን ማጽዳት
+        if(text) {
+            new QRCode(output, { text: text, width: 200, height: 200 });
+        } else {
+            alert("እባክዎ መረጃ ያስገቡ!");
+        }
+    }
+</script>
