@@ -1,1 +1,30 @@
-<a href="public_home.html" class="btn public-btn">🔴 ለህዝብ (ጥቆማና መረጃ)</a>
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>የምዕራብ ጎጃም ዞን ፖሊስ መምሪያ</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 20px; text-align: center; }
+        .form-box { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+        h2 { color: #003366; }
+        input, textarea { width: 90%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
+        .send-btn { width: 95%; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; }
+    </style>
+</head>
+<body>
+<div class="form-box">
+    <h2>🔴 የወንጀል ጥቆማ መላኪያ</h2>
+    <p>መረጃውን በትክክል ይሙሉ</p>
+    <input type="text" id="subject" placeholder="የጉዳዩ ርዕስ">
+    <textarea id="detail" rows="4" placeholder="ዝርዝር መረጃ..."></textarea>
+    <button class="send-btn" onclick="sendTip()">ጥቆማውን ላክ</button>
+</div>
+
+<script>
+    function sendTip() {
+        alert("ጥቆማው ለፖሊስ ደርሷል! እናመሰግናለን።");
+    }
+</script>
+</body>
+</html>
