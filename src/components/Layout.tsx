@@ -77,7 +77,7 @@ export function Layout({ children, activeTab, setActiveTab, onBack, onLogout, us
   ];
 
   return (
-    <div className="min-h-screen flex bg-brand-bg text-brand-text-primary overflow-hidden">
+    <div className="h-[100dvh] flex bg-brand-bg text-brand-text-primary overflow-hidden">
       {/* Mobile Menu Button */}
       <div className="lg:hidden fixed top-4 left-4 z-50 flex gap-2">
         <button 
@@ -132,7 +132,7 @@ export function Layout({ children, activeTab, setActiveTab, onBack, onLogout, us
             </button>
           </div>
 
-          <nav className="flex-1 space-y-2">
+          <nav className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
             {menuItems.map((item) => (
               <SidebarItem
                 key={item.id}

@@ -3,48 +3,59 @@ const CHAT_ID = '-1003878859973';
 
 export async function sendTelegramMessage(message: string) {
   console.log('Attempting to send Telegram message to:', CHAT_ID);
-  console.log('Message content:', message);
   
-  // Use GET request for simpler cross-origin compatibility in some environments
-  const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(message)}&parse_mode=HTML`;
+  const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
   
   try {
-    console.log('Sending GET request to Telegram...');
-    const response = await fetch(url);
+    console.log('Sending POST request to Telegram...');
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: CHAT_ID,
+        text: message,
+        parse_mode: 'HTML'
+      })
+    });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Telegram API error (GET):', errorData);
+      console.error('Telegram API error (POST):', errorData);
       
-      // If GET fails, try POST
-      console.log('GET failed, attempting POST fallback...');
-      const postUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-      const postResponse = await fetch(postUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: CHAT_ID,
-          text: message,
-          parse_mode: 'HTML'
-        })
-      });
-      
-      if (!postResponse.ok) {
-        const postErrorData = await postResponse.json();
-        console.error('Telegram API error (POST):', postErrorData);
-        return false;
+      // Fallback: try sending without HTML parsing if it failed due to bad entities
+      if (errorData.description && errorData.description.includes('parse entities')) {
+        console.log('Retrying without HTML parse mode...');
+        const fallbackResponse = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: CHAT_ID,
+            text: message.replace(/<[^>]*>?/gm, '') // Strip HTML tags for fallback
+          })
+        });
+        if (fallbackResponse.ok) return true;
       }
       
-      console.log('Telegram message sent successfully via POST');
-      return true;
+      return false;
     }
     
-    console.log('Telegram message sent successfully via GET');
+    console.log('Telegram message sent successfully');
     return true;
   } catch (error) {
     console.error('Failed to send Telegram message:', error);
     return false;
   }
+}
+
+export function escapeHtml(text: string | undefined | null): string {
+  if (!text) return '';
+  return text
+    .toString()
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 export function formatIncidentMessage(incident: any, type: 'Incident' | 'Report', isUpdate: boolean = false) {
@@ -53,7 +64,7 @@ export function formatIncidentMessage(incident: any, type: 'Incident' | 'Report'
   
   // If it's a citizen report, use the user's requested format
   if (incident.officerId === 'citizen') {
-    return `🚨 አዲስ የፖሊስ ጥቆማ፦\n\n<b>Title:</b> ${incident.title}\n<b>Type:</b> ${incident.type}\n<b>Category:</b> ${incident.category}\n<b>Location:</b> ${incident.location}\n<b>Description:</b>\n${incident.description || 'No description provided'}`;
+    return `🚨 አዲስ የፖሊስ ጥቆማ፦\n\n<b>Title:</b> ${escapeHtml(incident.title)}\n<b>Type:</b> ${escapeHtml(incident.type)}\n<b>Category:</b> ${escapeHtml(incident.category)}\n<b>Location:</b> ${escapeHtml(incident.location)}\n<b>Description:</b>\n${escapeHtml(incident.description || 'No description provided')}`;
   }
 
   const header = type === 'Incident' ? `<b>${action} Incident Reported</b>` : `<b>${action} Case Report Submitted</b>`;
@@ -61,17 +72,17 @@ export function formatIncidentMessage(incident: any, type: 'Incident' | 'Report'
   return `
 ${emoji} ${header}
 ---------------------------
-<b>Title:</b> ${incident.title}
-<b>Status:</b> ${incident.status}
-<b>Type:</b> ${incident.type}
-<b>Category:</b> ${incident.category}
-<b>Location:</b> ${incident.location}
-<b>Date:</b> ${incident.date}
-<b>Station:</b> ${incident.filingStation}
-<b>Officer:</b> ${incident.recordingOfficerRank || ''} ${incident.recordingOfficerName || ''}
+<b>Title:</b> ${escapeHtml(incident.title)}
+<b>Status:</b> ${escapeHtml(incident.status)}
+<b>Type:</b> ${escapeHtml(incident.type)}
+<b>Category:</b> ${escapeHtml(incident.category)}
+<b>Location:</b> ${escapeHtml(incident.location)}
+<b>Date:</b> ${escapeHtml(incident.date)}
+<b>Station:</b> ${escapeHtml(incident.filingStation)}
+<b>Officer:</b> ${escapeHtml(incident.recordingOfficerRank || '')} ${escapeHtml(incident.recordingOfficerName || '')}
 ---------------------------
 <b>Description:</b>
-${incident.description || 'No description provided'}
+${escapeHtml(incident.description || 'No description provided')}
   `.trim();
 }
 
@@ -80,13 +91,13 @@ export function formatOfficerMessage(officer: any, isUpdate: boolean = false) {
   return `
 👮 <b>${action} Officer Profile</b>
 ---------------------------
-<b>Name:</b> ${officer.name}
-<b>Rank:</b> ${officer.rank}
-<b>Badge #:</b> ${officer.badgeNumber}
-<b>Station:</b> ${officer.station}
-<b>Phone:</b> ${officer.phone}
-<b>Email:</b> ${officer.email}
-<b>Status:</b> ${officer.status}
+<b>Name:</b> ${escapeHtml(officer.name)}
+<b>Rank:</b> ${escapeHtml(officer.rank)}
+<b>Badge #:</b> ${escapeHtml(officer.badgeNumber)}
+<b>Station:</b> ${escapeHtml(officer.station)}
+<b>Phone:</b> ${escapeHtml(officer.phone)}
+<b>Email:</b> ${escapeHtml(officer.email)}
+<b>Status:</b> ${escapeHtml(officer.status)}
   `.trim();
 }
 
@@ -95,12 +106,12 @@ export function formatAssignmentMessage(assignment: any, isUpdate: boolean = fal
   return `
 📋 <b>${action} Duty Assignment</b>
 ---------------------------
-<b>Title:</b> ${assignment.title}
-<b>Type:</b> ${assignment.type}
-<b>Priority:</b> ${assignment.priority}
-<b>Status:</b> ${assignment.status}
-<b>Location:</b> ${assignment.location}
-<b>Officer ID:</b> ${assignment.officerId}
-<b>Due Date:</b> ${assignment.dueDate}
+<b>Title:</b> ${escapeHtml(assignment.title)}
+<b>Type:</b> ${escapeHtml(assignment.type)}
+<b>Priority:</b> ${escapeHtml(assignment.priority)}
+<b>Status:</b> ${escapeHtml(assignment.status)}
+<b>Location:</b> ${escapeHtml(assignment.location)}
+<b>Officer ID:</b> ${escapeHtml(assignment.officerId)}
+<b>Due Date:</b> ${escapeHtml(assignment.dueDate)}
   `.trim();
 }

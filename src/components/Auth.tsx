@@ -10,7 +10,7 @@ import {
   updateProfile,
   signInWithPopup
 } from 'firebase/auth';
-import { sendTelegramMessage } from '../services/telegramService';
+import { sendTelegramMessage, escapeHtml } from '../services/telegramService';
 
 interface AuthProps {
   type: 'login' | 'signup';
@@ -50,7 +50,7 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
         });
         
         // Send Telegram notification for new signup
-        await sendTelegramMessage(`👤 <b>New Officer Registered</b>\n---------------------------\n<b>Name:</b> ${formData.name}\n<b>Email:</b> ${formData.email}\n<b>Badge:</b> ${formData.badgeNumber}`);
+        await sendTelegramMessage(`👤 <b>New Officer Registered</b>\n---------------------------\n<b>Name:</b> ${escapeHtml(formData.name)}\n<b>Email:</b> ${escapeHtml(formData.email)}\n<b>Badge:</b> ${escapeHtml(formData.badgeNumber)}`);
 
         onSuccess({
           name: formData.name,
@@ -74,7 +74,7 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
       } else if (err.code === 'auth/weak-password') {
         message = lang === 'am' ? 'የይለፍ ቃል ቢያንስ 6 ፊደላት መሆን አለበት።' : 'Password should be at least 6 characters.';
       } else if (err.code === 'auth/network-request-failed') {
-        message = lang === 'am' ? 'የኢንተርኔት ግንኙነት ችግር አለ። እባክዎ ግንኙነትዎን ያረጋግጡ።' : 'Network error. Please check your internet connection.';
+        message = lang === 'am' ? 'የኔትወርክ ችግር አጋጥሟል። እባክዎ ኢንተርኔትዎን፣ Adblocker ወይም VPN ያረጋግጡ። (በአዲስ ታብ መክፈት ሊረዳ ይችላል)' : 'Network error. Please check your internet, Adblocker, or VPN. (Opening in a new tab might help)';
       } else if (err.code === 'auth/too-many-requests') {
         message = lang === 'am' ? 'ብዙ ሙከራ ተደርጓል። እባክዎ ለጥቂት ደቂቃዎች ቆይተው ይሞክሩ።' : 'Too many attempts. Please try again later.';
       } else if (err.code === 'auth/operation-not-allowed') {
@@ -106,6 +106,8 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
         setError(lang === 'am' ? 'የመግቢያው መስኮት ተዘግቷል። እባክዎ እንደገና ይሞክሩ።' : 'Sign-in popup closed. Please try again.');
       } else if (err.code === 'auth/unauthorized-domain') {
         setError(lang === 'am' ? 'ይህ ዌብሳይት በFirebase አልተፈቀደም። እባክዎ አስተዳዳሪውን ያነጋግሩ።' : 'This domain is not authorized in Firebase. Please contact support.');
+      } else if (err.code === 'auth/network-request-failed') {
+        setError(lang === 'am' ? 'የኔትወርክ ችግር አጋጥሟል። እባክዎ ኢንተርኔትዎን፣ Adblocker ወይም VPN ያረጋግጡ። (በአዲስ ታብ መክፈት ሊረዳ ይችላል)' : 'Network error. Please check your internet, Adblocker, or VPN. (Opening in a new tab might help)');
       } else {
         const amMsg = `በGoogle መግባት አልተቻለም። እባክዎ እንደገና ይሞክሩ።${err.code ? ` (${err.code})` : ''}`;
         const enMsg = `Failed to sign in with Google. Please try again.${err.code ? ` (${err.code})` : ''}`;

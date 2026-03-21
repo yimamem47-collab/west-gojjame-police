@@ -1,6 +1,6 @@
 import React from 'react';
 import { Shield, ShieldAlert, Users, ClipboardList, FileText, ArrowRight, Lock, CheckCircle, Globe, Phone, Camera, Send, MessageSquare, Facebook } from 'lucide-react';
-import { sendTelegramMessage } from '../services/telegramService';
+import { sendTelegramMessage, escapeHtml } from '../services/telegramService';
 import { Language, translations } from '../lib/translations';
 import { APP_LOGO } from '../constants';
 import { motion } from 'motion/react';
@@ -31,7 +31,7 @@ export function Home({ onLogin, onSignup, onReport, onViewContacts, onOpenQR, on
     }
 
     setSending(true);
-    const message = `🚨 አዲስ የፖሊስ ጥቆማ፦\n\n${quickTip}`;
+    const message = `🚨 አዲስ የፖሊስ ጥቆማ፦\n\n${escapeHtml(quickTip)}`;
     const success = await sendTelegramMessage(message);
     setSending(false);
 

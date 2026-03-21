@@ -12,7 +12,7 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() &&
         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin' ||
-         (request.auth.token.email == "Yimamem47@gmail.com" && request.auth.token.get('email_verified', false) == true));
+         request.auth.token.email == "Yimamem47@gmail.com");
     }
 
     function isOwner(userId) {
@@ -37,7 +37,7 @@ service cloud.firestore {
     function isValidUser(data) {
       return data.keys().hasAll(['id', 'name', 'email', 'role']) &&
              data.id == request.auth.uid &&
-             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
              isValidEmail(data.email) &&
              data.role in ['Admin', 'Officer'];
     }
@@ -45,21 +45,21 @@ service cloud.firestore {
     function isValidIncident(data) {
       return data.keys().hasAll(['id', 'title', 'status', 'date', 'location', 'officerId', 'type', 'category']) &&
              data.id is string &&
-             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 1000 &&
              data.status in ['Open', 'In Progress', 'Closed'] &&
              isValidDateString(data.date) &&
-             data.location is string && data.location.size() > 0 && data.location.size() < 200 &&
+             data.location is string && data.location.size() > 0 && data.location.size() < 1000 &&
              (data.officerId == request.auth.uid || data.officerId == 'citizen' || isAdmin()) &&
              data.type in ['Crime', 'Traffic'] &&
-             data.category is string && data.category.size() > 0 && data.category.size() < 100;
+             data.category is string && data.category.size() > 0 && data.category.size() < 200;
     }
 
     function isValidOfficer(data) {
       return data.keys().hasAll(['id', 'name', 'badgeNumber', 'rank', 'email', 'status']) &&
              data.id is string &&
-             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             data.badgeNumber is string && data.badgeNumber.size() > 0 && data.badgeNumber.size() < 20 &&
-             data.rank is string && data.rank.size() > 0 && data.rank.size() < 50 &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
+             data.badgeNumber is string && data.badgeNumber.size() > 0 && data.badgeNumber.size() < 100 &&
+             data.rank is string && data.rank.size() > 0 && data.rank.size() < 100 &&
              isValidEmail(data.email) &&
              data.status in ['Active', 'On Leave', 'Suspended'];
     }
@@ -67,7 +67,7 @@ service cloud.firestore {
     function isValidAssignment(data) {
       return data.keys().hasAll(['id', 'title', 'status', 'dueDate', 'officerId']) &&
              data.id is string &&
-             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 1000 &&
              data.status in ['Pending', 'Completed'] &&
              isValidDateString(data.dueDate) &&
              data.officerId is string;
@@ -76,23 +76,23 @@ service cloud.firestore {
     function isValidReport(data) {
       return data.keys().hasAll(['id', 'title', 'status', 'date', 'location', 'officerId', 'type', 'category']) &&
              data.id is string &&
-             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 1000 &&
              data.status in ['Submitted', 'Pending Review'] &&
              isValidDateString(data.date) &&
-             data.location is string && data.location.size() > 0 && data.location.size() < 200 &&
+             data.location is string && data.location.size() > 0 && data.location.size() < 1000 &&
              data.officerId == request.auth.uid &&
              data.type in ['Crime', 'Traffic'] &&
-             data.category is string && data.category.size() > 0 && data.category.size() < 100;
+             data.category is string && data.category.size() > 0 && data.category.size() < 200;
     }
 
     function isValidCommunityReport(data) {
       return data.keys().hasAll(['reporterName', 'reporterPhone', 'location', 'date', 'details', 'status', 'timestamp']) &&
-             data.reporterName is string && data.reporterName.size() >= 3 && data.reporterName.size() < 100 &&
-             data.reporterPhone is string && data.reporterPhone.size() >= 9 && data.reporterPhone.size() < 20 &&
+             data.reporterName is string && data.reporterName.size() >= 3 && data.reporterName.size() < 200 &&
+             data.reporterPhone is string && data.reporterPhone.size() >= 9 && data.reporterPhone.size() < 50 &&
              (!('reporterEmail' in data) || data.reporterEmail == '' || isValidEmail(data.reporterEmail)) &&
-             data.location is string && data.location.size() > 0 && data.location.size() < 200 &&
+             data.location is string && data.location.size() > 0 && data.location.size() < 1000 &&
              isValidDateString(data.date) &&
-             data.details is string && data.details.size() >= 10 && data.details.size() < 2000 &&
+             data.details is string && data.details.size() >= 10 && data.details.size() < 10000 &&
              data.status in ['New', 'Reviewed', 'Action Taken'] &&
              data.timestamp is timestamp;
     }

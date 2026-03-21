@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from "firebase/auth";
-import { getFirestore, doc, getDocFromServer } from "firebase/firestore";
+import { getFirestore, doc, getDocFromServer, enableIndexedDbPersistence } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import firebaseConfig from "../firebase-applet-config.json";
 
@@ -17,6 +17,16 @@ setPersistence(auth, browserLocalPersistence).catch((err) => {
 // Initialize Firestore
 console.log("Firebase Config:", firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
+// Enable offline persistence
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code == 'failed-precondition') {
+    console.warn('Multiple tabs open, persistence can only be enabled in one tab at a a time.');
+  } else if (err.code == 'unimplemented') {
+    console.warn('The current browser does not support all of the features required to enable persistence');
+  }
+});
+
 export const googleProvider = new GoogleAuthProvider();
 
 /**
@@ -70,9 +80,12 @@ interface FirestoreErrorInfo {
 /**
  * CRITICAL DIRECTIVE: Specific error handler for Firestore permissions and connectivity.
  */
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+export function handleFirestoreError(error: any, operationType: OperationType, path: string | null) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorCode = error?.code || '';
+  
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errorMessage,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -92,6 +105,18 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   
   const errorString = JSON.stringify(errInfo);
   console.error('Firestore Error Details:', errorString);
+  
+  // Do not throw for offline/network errors to prevent app crashes
+  if (
+    errorCode === 'unavailable' || 
+    errorMessage.includes('offline') || 
+    errorMessage.includes('Could not reach Cloud Firestore') || 
+    errorMessage.includes('network') ||
+    errorMessage.includes('Internet connection')
+  ) {
+    console.warn('Network error ignored to prevent crash:', errorMessage);
+    return;
+  }
   
   // Return a user-friendly message but throw the JSON for the system
   throw new Error(errorString);

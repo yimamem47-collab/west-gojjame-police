@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Incident, Officer, Assignment, Report, User, ZoneReport } from '../types';
 import { INITIAL_OFFICERS, INITIAL_INCIDENTS, INITIAL_ASSIGNMENTS, INITIAL_REPORTS } from '../constants';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { sendTelegramMessage, formatIncidentMessage, formatOfficerMessage, formatAssignmentMessage } from '../services/telegramService';
+import { sendTelegramMessage, formatIncidentMessage, formatOfficerMessage, formatAssignmentMessage, escapeHtml } from '../services/telegramService';
 import { 
   collection, 
   onSnapshot, 
@@ -285,7 +285,7 @@ export function useAppData() {
     };
     try {
       await setDoc(doc(db, 'zone_detailed_reports', id), newReport);
-      await sendTelegramMessage(`📋 <b>New Zone Detailed Report</b>\n---------------------------\n<b>Officer:</b> ${newReport.officer_name}\n<b>Deputy Dept:</b> ${newReport.deputy_dept}\n<b>Main Dept:</b> ${newReport.main_dept}\n<b>Wereda:</b> ${newReport.wereda}\n<b>Type:</b> ${newReport.report_type}`);
+      await sendTelegramMessage(`📋 <b>New Zone Detailed Report</b>\n---------------------------\n<b>Officer:</b> ${escapeHtml(newReport.officer_name)}\n<b>Deputy Dept:</b> ${escapeHtml(newReport.deputy_dept)}\n<b>Main Dept:</b> ${escapeHtml(newReport.main_dept)}\n<b>Wereda:</b> ${escapeHtml(newReport.wereda)}\n<b>Type:</b> ${escapeHtml(newReport.report_type)}`);
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, `zone_detailed_reports/${id}`);
     }

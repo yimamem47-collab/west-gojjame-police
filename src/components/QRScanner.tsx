@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import { X, Camera, RefreshCw, ExternalLink, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Language, translations } from '../lib/translations';
@@ -12,27 +12,31 @@ interface QRScannerProps {
 
 export function QRScanner({ lang, onClose, onScan }: QRScannerProps) {
   const t = translations[lang];
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
+    let html5QrCode: Html5Qrcode | null = null;
+    
     const startScanner = async () => {
       try {
         // Explicitly check for camera permission first to provide better feedback
         await navigator.mediaDevices.getUserMedia({ video: true });
         
-        scannerRef.current = new Html5QrcodeScanner(
-          "qr-reader",
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          /* verbose= */ false
-        );
+        html5QrCode = new Html5Qrcode("qr-reader");
+        scannerRef.current = html5QrCode;
+        
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
-        scannerRef.current.render(
+        // 'environment' ማለት የኋላ ካሜራ ማለት ነው
+        await html5QrCode.start(
+          { facingMode: "environment" }, 
+          config,
           (decodedText) => {
             onScan(decodedText);
-            if (scannerRef.current) {
-              scannerRef.current.clear();
+            if (html5QrCode && html5QrCode.isScanning) {
+              html5QrCode.stop().catch(err => console.error("Failed to stop scanner", err));
             }
           },
           (errorMessage) => {
@@ -40,17 +44,17 @@ export function QRScanner({ lang, onClose, onScan }: QRScannerProps) {
           }
         );
       } catch (err) {
-        console.error("Camera access error:", err);
+        console.error("ካሜራ ስህተት:", err);
         setPermissionDenied(true);
-        setError(lang === 'am' ? 'ካሜራውን ለመጠቀም አልተፈቀደም። እባክዎ በስልክዎ ሴቲንግ ውስጥ ይፍቀዱ ወይም አፑን በአዲስ ታብ ይክፈቱት።' : 'Camera permission denied. Please allow camera access in settings or open the app in a new tab.');
+        setError(lang === 'am' ? 'ካሜራውን መክፈት አልተቻለም። እባክዎ የካሜራ ፈቃድ መኖሩን ያረጋግጡ!' : 'Failed to open camera. Please ensure camera permission is granted!');
       }
     };
 
     startScanner();
 
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.clear().catch(err => console.error("Failed to clear scanner", err));
+      if (scannerRef.current && scannerRef.current.isScanning) {
+        scannerRef.current.stop().catch(err => console.error("Failed to stop scanner on unmount", err));
       }
     };
   }, [onScan, lang]);

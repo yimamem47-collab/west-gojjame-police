@@ -26,7 +26,7 @@ import { Phone, Loader2, CheckCircle } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { sendTelegramMessage } from './services/telegramService';
+import { sendTelegramMessage, escapeHtml } from './services/telegramService';
 import { motion, AnimatePresence } from 'motion/react';
 import { APP_LOGO } from './constants';
 
@@ -104,7 +104,7 @@ export default function App() {
             });
             
             // Send Telegram notification for new auto-registered user (Google Sign-in)
-            await sendTelegramMessage(`👤 <b>New User Registered (Google)</b>\n---------------------------\n<b>Name:</b> ${firebaseUser.displayName || 'Officer'}\n<b>Email:</b> ${firebaseUser.email}\n<b>Role:</b> ${role}`);
+            await sendTelegramMessage(`👤 <b>New User Registered (Google)</b>\n---------------------------\n<b>Name:</b> ${escapeHtml(firebaseUser.displayName || 'Officer')}\n<b>Email:</b> ${escapeHtml(firebaseUser.email)}\n<b>Role:</b> ${escapeHtml(role)}`);
           }
 
           setUser({
