@@ -74,21 +74,28 @@ export function CommunityReportForm({ lang, onBack }: CommunityReportFormProps) 
       const reportData = {
         name: report.reporterName,
         phone: report.reporterPhone,
+        email: report.reporterEmail || "",
         message: report.details,
-        location: report.location
+        location: report.location,
+        date: report.date,
+        status: 'New'
       };
       
-      const sheetURL = "https://script.google.com/macros/s/AKfycbxNc4Ra9bKTaiwQub2fZBBMBwzsVXXqOMmC61xq2vhH25RjpspzwlQN8N4Ljegfzb7-/exec";
+      const sheetURL = "https://script.google.com/macros/s/AKfycbyVIUjh-SpryVoB-vvRJ6PmrqU-SvnrQamV_04MWcELHkP5DkOF-G821KUNNtjGki87/exec";
       
-      await fetch(sheetURL, {
-        method: 'POST',
-        mode: 'no-cors',
-        cache: 'no-cache',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(reportData)
-      });
+      try {
+        await fetch(sheetURL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(reportData)
+        });
+        console.log("መረጃው ወደ ጎግል ሺት ተልኳል!");
+      } catch (error) {
+        console.error("በሺቱ መላኪያ ላይ ስህተት አለ:", error);
+      }
       
       setIsSuccess(true);
     } catch (error) {

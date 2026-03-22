@@ -99,6 +99,33 @@ export function CommunityReports({ lang }: CommunityReportsProps) {
         status: 'New',
         timestamp: serverTimestamp()
       });
+
+      // Send to Google Sheets
+      const reportData = {
+        name: newReport.reporterName,
+        phone: newReport.reporterPhone,
+        email: newReport.reporterEmail || "",
+        message: newReport.details,
+        location: newReport.location,
+        date: newReport.date,
+        status: 'New'
+      };
+      
+      const sheetURL = "https://script.google.com/macros/s/AKfycbyVIUjh-SpryVoB-vvRJ6PmrqU-SvnrQamV_04MWcELHkP5DkOF-G821KUNNtjGki87/exec";
+      
+      try {
+        await fetch(sheetURL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(reportData)
+        });
+      } catch (error) {
+        console.error("Error sending to Google Sheets:", error);
+      }
+
       setIsModalOpen(false);
       setNewReport({
         reporterName: '',

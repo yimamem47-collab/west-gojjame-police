@@ -11,7 +11,8 @@ import {
   updateDoc, 
   deleteDoc, 
   query, 
-  where
+  where,
+  deleteField
 } from 'firebase/firestore';
 
 export function useAppData() {
@@ -150,17 +151,37 @@ export function useAppData() {
     }
   };
 
+  const cleanForCreate = (obj: any) => {
+    const cleaned = { ...obj };
+    Object.keys(cleaned).forEach(key => {
+      if (cleaned[key] === undefined) {
+        delete cleaned[key];
+      }
+    });
+    return cleaned;
+  };
+
+  const cleanForUpdate = (obj: any) => {
+    const cleaned = { ...obj };
+    Object.keys(cleaned).forEach(key => {
+      if (cleaned[key] === undefined) {
+        cleaned[key] = deleteField();
+      }
+    });
+    return cleaned;
+  };
+
   const addIncident = async (incident: Omit<Incident, 'id'>) => {
     const id = Math.random().toString(36).substr(2, 9);
     const officerId = incident.officerId || user?.id || '';
     const officer = officers.find(o => o.id === officerId);
-    const enrichedIncident = {
+    const enrichedIncident = cleanForCreate({
       ...incident,
       id,
       officerId,
       recordingOfficerName: officer?.name || incident.recordingOfficerName || 'Unknown',
       recordingOfficerRank: officer?.rank || incident.recordingOfficerRank || 'constable'
-    };
+    });
     try {
       await setDoc(doc(db, 'incidents', id), enrichedIncident);
       await sendTelegramMessage(formatIncidentMessage(enrichedIncident, 'Incident'));
@@ -179,7 +200,7 @@ export function useAppData() {
           finalUpdates.recordingOfficerRank = officer.rank;
         }
       }
-      await updateDoc(doc(db, 'incidents', id), finalUpdates);
+      await updateDoc(doc(db, 'incidents', id), cleanForUpdate(finalUpdates));
       const updatedIncident = incidents.find(i => i.id === id);
       if (updatedIncident) {
         await sendTelegramMessage(formatIncidentMessage({ ...updatedIncident, ...finalUpdates }, 'Incident', true));
@@ -200,7 +221,7 @@ export function useAppData() {
   const addAssignment = async (assignment: Omit<Assignment, 'id'>) => {
     const id = Math.random().toString(36).substr(2, 9);
     const officerId = user?.id || assignment.officerId || '';
-    const newAssignment = { ...assignment, id, officerId };
+    const newAssignment = cleanForCreate({ ...assignment, id, officerId });
     try {
       await setDoc(doc(db, 'assignments', id), newAssignment);
       await sendTelegramMessage(formatAssignmentMessage(newAssignment));
@@ -211,7 +232,7 @@ export function useAppData() {
 
   const updateAssignment = async (id: string, updates: Partial<Assignment>) => {
     try {
-      await updateDoc(doc(db, 'assignments', id), updates);
+      await updateDoc(doc(db, 'assignments', id), cleanForUpdate(updates));
       const updatedAssignment = assignments.find(a => a.id === id);
       if (updatedAssignment) {
         await sendTelegramMessage(formatAssignmentMessage({ ...updatedAssignment, ...updates }, true));
@@ -233,13 +254,13 @@ export function useAppData() {
     const id = Math.random().toString(36).substr(2, 9);
     const officerId = report.officerId || user?.id || '';
     const officer = officers.find(o => o.id === officerId);
-    const enrichedReport = {
+    const enrichedReport = cleanForCreate({
       ...report,
       id,
       officerId,
       recordingOfficerName: officer?.name || report.recordingOfficerName || 'Unknown',
       recordingOfficerRank: officer?.rank || report.recordingOfficerRank || 'constable'
-    };
+    });
     try {
       await setDoc(doc(db, 'reports', id), enrichedReport);
       await sendTelegramMessage(formatIncidentMessage(enrichedReport, 'Report'));
@@ -258,7 +279,7 @@ export function useAppData() {
           finalUpdates.recordingOfficerRank = officer.rank;
         }
       }
-      await updateDoc(doc(db, 'reports', id), finalUpdates);
+      await updateDoc(doc(db, 'reports', id), cleanForUpdate(finalUpdates));
       const updatedReport = reports.find(r => r.id === id);
       if (updatedReport) {
         await sendTelegramMessage(formatIncidentMessage({ ...updatedReport, ...finalUpdates }, 'Report', true));
