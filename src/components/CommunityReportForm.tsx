@@ -36,6 +36,10 @@ export function CommunityReportForm({ lang, onBack }: CommunityReportFormProps) 
         alert(lang === 'am' ? 'እባክዎ ትክክለኛ ስልክ ቁጥር ያስገቡ' : 'Please enter a valid phone number');
         return;
       }
+      if (report.reporterEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(report.reporterEmail)) {
+        alert(lang === 'am' ? 'እባክዎ ትክክለኛ ኢሜይል ያስገቡ ወይም ባዶ ይተውት' : 'Please enter a valid email or leave it empty');
+        return;
+      }
     } else if (step === 2) {
       if (!report.details.trim() || report.details.length < 10) {
         alert(lang === 'am' ? 'እባክዎ ዝርዝር መግለጫ ያስገቡ (ቢያንስ 10 ፊደላት)' : 'Please enter detailed information (min 10 characters)');
@@ -71,26 +75,25 @@ export function CommunityReportForm({ lang, onBack }: CommunityReportFormProps) 
       await sendTelegramMessage(message);
 
       // Send to Google Sheets
-      const reportData = {
-        name: report.reporterName,
-        phone: report.reporterPhone,
-        email: report.reporterEmail || "",
-        message: report.details,
-        location: report.location,
-        date: report.date,
-        status: 'New'
-      };
-      
       const sheetURL = "https://script.google.com/macros/s/AKfycbyVIUjh-SpryVoB-vvRJ6PmrqU-SvnrQamV_04MWcELHkP5DkOF-G821KUNNtjGki87/exec";
+      
+      const formData = new URLSearchParams();
+      formData.append('name', report.reporterName);
+      formData.append('phone', report.reporterPhone);
+      formData.append('email', report.reporterEmail || "");
+      formData.append('message', report.details);
+      formData.append('location', report.location);
+      formData.append('date', report.date);
+      formData.append('status', 'New');
       
       try {
         await fetch(sheetURL, {
           method: 'POST',
           mode: 'no-cors',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
           },
-          body: JSON.stringify(reportData)
+          body: formData.toString()
         });
         console.log("መረጃው ወደ ጎግል ሺት ተልኳል!");
       } catch (error) {

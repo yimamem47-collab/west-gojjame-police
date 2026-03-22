@@ -97,9 +97,22 @@ service cloud.firestore {
              (data.timestamp is timestamp || data.timestamp is string);
     }
 
+    function isValidQuickTip(data) {
+      return data.keys().hasAll(['tip', 'timestamp']) &&
+             data.tip is string && data.tip.size() > 0 && data.tip.size() < 10000 &&
+             (data.timestamp is timestamp || data.timestamp is string);
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
+
+    match /quick_tips/{tipId} {
+      allow read: if isAdmin();
+      allow create: if isValidQuickTip(request.resource.data);
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
 
     match /users/{userId} {
       allow read: if isAuthenticated();

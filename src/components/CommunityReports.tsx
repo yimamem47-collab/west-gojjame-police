@@ -101,26 +101,25 @@ export function CommunityReports({ lang }: CommunityReportsProps) {
       });
 
       // Send to Google Sheets
-      const reportData = {
-        name: newReport.reporterName,
-        phone: newReport.reporterPhone,
-        email: newReport.reporterEmail || "",
-        message: newReport.details,
-        location: newReport.location,
-        date: newReport.date,
-        status: 'New'
-      };
-      
       const sheetURL = "https://script.google.com/macros/s/AKfycbyVIUjh-SpryVoB-vvRJ6PmrqU-SvnrQamV_04MWcELHkP5DkOF-G821KUNNtjGki87/exec";
+      
+      const formData = new URLSearchParams();
+      formData.append('name', newReport.reporterName);
+      formData.append('phone', newReport.reporterPhone);
+      formData.append('email', newReport.reporterEmail || "");
+      formData.append('message', newReport.details);
+      formData.append('location', newReport.location);
+      formData.append('date', newReport.date);
+      formData.append('status', 'New');
       
       try {
         await fetch(sheetURL, {
           method: 'POST',
           mode: 'no-cors',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
           },
-          body: JSON.stringify(reportData)
+          body: formData.toString()
         });
       } catch (error) {
         console.error("Error sending to Google Sheets:", error);

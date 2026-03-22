@@ -5,6 +5,8 @@ import { Language, translations } from '../lib/translations';
 import { APP_LOGO } from '../constants';
 import { motion } from 'motion/react';
 import { useState } from 'react';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebase';
 
 interface HomeProps {
   onLogin: () => void;
@@ -32,15 +34,53 @@ export function Home({ onLogin, onSignup, onReport, onViewContacts, onOpenQR, on
 
     setSending(true);
     const message = `🚨 አዲስ የፖሊስ ጥቆማ፦\n\n${escapeHtml(quickTip)}`;
-    const success = await sendTelegramMessage(message);
-    setSending(false);
+    
+    try {
+      // Send to Telegram
+      const success = await sendTelegramMessage(message);
+      
+      if (success) {
+        // Save to Firebase
+        await addDoc(collection(db, 'quick_tips'), {
+          tip: quickTip,
+          timestamp: serverTimestamp()
+        });
 
-    if (success) {
-      setSent(true);
-      setQuickTip('');
-      setTimeout(() => setSent(false), 3000);
-    } else {
+        // Send to Google Sheets (using the same URL, but with different fields)
+        const sheetURL = "https://script.google.com/macros/s/AKfycbyVIUjh-SpryVoB-vvRJ6PmrqU-SvnrQamV_04MWcELHkP5DkOF-G821KUNNtjGki87/exec";
+        const formData = new URLSearchParams();
+        formData.append('name', 'Anonymous Tip');
+        formData.append('phone', '');
+        formData.append('email', '');
+        formData.append('message', quickTip);
+        formData.append('location', '');
+        formData.append('date', new Date().toISOString().split('T')[0]);
+        formData.append('status', 'New Tip');
+        
+        try {
+          await fetch(sheetURL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: formData.toString()
+          });
+        } catch (e) {
+          console.error("Error sending tip to Google Sheets:", e);
+        }
+
+        setSent(true);
+        setQuickTip('');
+        setTimeout(() => setSent(false), 3000);
+      } else {
+        alert(lang === 'am' ? 'ስህተት ተከስቷል! እባክዎ ቆይተው ይሞክሩ።' : 'An error occurred! Please try again later.');
+      }
+    } catch (error) {
+      console.error("Error submitting quick tip:", error);
       alert(lang === 'am' ? 'ስህተት ተከስቷል! እባክዎ ቆይተው ይሞክሩ።' : 'An error occurred! Please try again later.');
+    } finally {
+      setSending(false);
     }
   };
 
