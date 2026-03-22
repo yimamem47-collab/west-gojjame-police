@@ -69,6 +69,26 @@ export function CommunityReportForm({ lang, onBack }: CommunityReportFormProps) 
       // Send Telegram notification
       const message = `🚨 <b>አዲስ የማህበረሰብ ሪፖርት / New Community Report</b>\n---------------------------\n<b>Name:</b> ${escapeHtml(report.reporterName)}\n<b>Phone:</b> ${escapeHtml(report.reporterPhone)}\n<b>Location:</b> ${escapeHtml(report.location)}\n<b>Date:</b> ${escapeHtml(report.date)}\n---------------------------\n<b>Details:</b>\n${escapeHtml(report.details)}`;
       await sendTelegramMessage(message);
+
+      // Send to Google Sheets
+      const reportData = {
+        name: report.reporterName,
+        phone: report.reporterPhone,
+        message: report.details,
+        location: report.location
+      };
+      
+      const sheetURL = "https://script.google.com/macros/s/AKfycbxNc4Ra9bKTaiwQub2fZBBMBwzsVXXqOMmC61xq2vhH25RjpspzwlQN8N4Ljegfzb7-/exec";
+      
+      await fetch(sheetURL, {
+        method: 'POST',
+        mode: 'no-cors',
+        cache: 'no-cache',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reportData)
+      });
       
       setIsSuccess(true);
     } catch (error) {
