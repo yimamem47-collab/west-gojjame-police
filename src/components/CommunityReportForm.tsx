@@ -87,19 +87,16 @@ export function CommunityReportForm({ lang, onBack }: CommunityReportFormProps) 
         status: 'New'
       };
       
-      try {
-        await fetch(sheetURL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(reportData)
-        });
-        console.log("መረጃው ወደ ጎግል ሺት ተልኳል!");
-      } catch (error) {
-        console.error("በሺቱ መላኪያ ላይ ስህተት አለ:", error);
-      }
+      // Send to Google Sheets in the background without blocking
+      fetch(sheetURL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reportData)
+      }).then(() => console.log("መረጃው ወደ ጎግል ሺት ተልኳል!"))
+        .catch(error => console.error("በሺቱ መላኪያ ላይ ስህተት አለ:", error));
       
       setIsSuccess(true);
     } catch (error) {

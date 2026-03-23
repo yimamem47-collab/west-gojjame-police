@@ -113,18 +113,15 @@ export function CommunityReports({ lang }: CommunityReportsProps) {
         status: 'New'
       };
       
-      try {
-        await fetch(sheetURL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(reportData)
-        });
-      } catch (error) {
-        console.error("Error sending to Google Sheets:", error);
-      }
+      // Send to Google Sheets in the background without blocking
+      fetch(sheetURL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reportData)
+      }).catch(error => console.error("Error sending to Google Sheets:", error));
 
       setIsModalOpen(false);
       setNewReport({

@@ -58,18 +58,15 @@ export function Home({ onLogin, onSignup, onReport, onViewContacts, onOpenQR, on
           status: 'New Tip'
         };
         
-        try {
-          await fetch(sheetURL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(reportData)
-          });
-        } catch (e) {
-          console.error("Error sending tip to Google Sheets:", e);
-        }
+        // Send to Google Sheets in the background without blocking
+        fetch(sheetURL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(reportData)
+        }).catch(e => console.error("Error sending tip to Google Sheets:", e));
 
         setSent(true);
         setQuickTip('');
