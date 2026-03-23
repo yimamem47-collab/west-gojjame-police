@@ -75,25 +75,26 @@ export function CommunityReportForm({ lang, onBack }: CommunityReportFormProps) 
       await sendTelegramMessage(message);
 
       // Send to Google Sheets
-      const sheetURL = "https://script.google.com/macros/s/AKfycbyVIUjh-SpryVoB-vvRJ6PmrqU-SvnrQamV_04MWcELHkP5DkOF-G821KUNNtjGki87/exec";
+      const sheetURL = "https://script.google.com/macros/s/AKfycbw2Bkjrv9SbObSFs0xOlcONYKJKpsa_lqSu2to4PfIKlHoP8U5KVMj0DQYrkvkS_jYS/exec";
       
-      const formData = new URLSearchParams();
-      formData.append('name', report.reporterName);
-      formData.append('phone', report.reporterPhone);
-      formData.append('email', report.reporterEmail || "");
-      formData.append('message', report.details);
-      formData.append('location', report.location);
-      formData.append('date', report.date);
-      formData.append('status', 'New');
+      const reportData = {
+        name: report.reporterName,
+        phone: report.reporterPhone,
+        email: report.reporterEmail || "",
+        message: report.details,
+        location: report.location,
+        date: report.date,
+        status: 'New'
+      };
       
       try {
         await fetch(sheetURL, {
           method: 'POST',
           mode: 'no-cors',
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/json',
           },
-          body: formData.toString()
+          body: JSON.stringify(reportData)
         });
         console.log("መረጃው ወደ ጎግል ሺት ተልኳል!");
       } catch (error) {

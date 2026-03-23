@@ -47,24 +47,25 @@ export function Home({ onLogin, onSignup, onReport, onViewContacts, onOpenQR, on
         });
 
         // Send to Google Sheets (using the same URL, but with different fields)
-        const sheetURL = "https://script.google.com/macros/s/AKfycbyVIUjh-SpryVoB-vvRJ6PmrqU-SvnrQamV_04MWcELHkP5DkOF-G821KUNNtjGki87/exec";
-        const formData = new URLSearchParams();
-        formData.append('name', 'Anonymous Tip');
-        formData.append('phone', '');
-        formData.append('email', '');
-        formData.append('message', quickTip);
-        formData.append('location', '');
-        formData.append('date', new Date().toISOString().split('T')[0]);
-        formData.append('status', 'New Tip');
+        const sheetURL = "https://script.google.com/macros/s/AKfycbw2Bkjrv9SbObSFs0xOlcONYKJKpsa_lqSu2to4PfIKlHoP8U5KVMj0DQYrkvkS_jYS/exec";
+        const reportData = {
+          name: 'Anonymous Tip',
+          phone: '',
+          email: '',
+          message: quickTip,
+          location: '',
+          date: new Date().toISOString().split('T')[0],
+          status: 'New Tip'
+        };
         
         try {
           await fetch(sheetURL, {
             method: 'POST',
             mode: 'no-cors',
             headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
+              'Content-Type': 'application/json',
             },
-            body: formData.toString()
+            body: JSON.stringify(reportData)
           });
         } catch (e) {
           console.error("Error sending tip to Google Sheets:", e);
