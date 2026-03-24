@@ -18,7 +18,6 @@
     @apply bg-brand-bg text-brand-text-primary font-sans antialiased;
     background-image: radial-gradient(circle at top right, rgba(34, 211, 238, 0.05), transparent),
                       radial-gradient(circle at bottom left, rgba(34, 211, 238, 0.05), transparent);
-    background-attachment: fixed;
   }
 }
 

@@ -119,7 +119,7 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
   };
 
   return (
-    <div className="min-h-screen bg-[#002B5B] flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-[#002B5B] flex items-center justify-center p-4 relative overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#FFD700]/5 rounded-full blur-3xl" />

@@ -188,7 +188,7 @@ export function Layout({ children, activeTab, setActiveTab, onBack, onLogout, us
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto flex flex-col pt-20 lg:pt-8">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col pt-20 lg:pt-8 relative z-0" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="flex-1 p-4 lg:p-8 max-w-7xl mx-auto w-full">
           {activeTab !== 'dashboard' && (
             <button 

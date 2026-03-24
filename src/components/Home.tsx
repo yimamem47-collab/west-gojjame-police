@@ -84,7 +84,7 @@ export function Home({ onLogin, onSignup, onReport, onViewContacts, onOpenQR, on
   };
 
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text-primary">
+    <div className="min-h-screen bg-brand-bg text-brand-text-primary overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 bg-brand-bg/80 backdrop-blur-md border-b border-brand-border">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
