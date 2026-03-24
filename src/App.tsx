@@ -312,6 +312,17 @@ export default function App() {
   };
 
   useEffect(() => {
+    // Play welcome voice
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance("በጀግንነት መጠበቅ፣ በሰብዓዊነት ማገልገል");
+      utterance.lang = 'am-ET';
+      utterance.rate = 0.85; // Slightly slower for a majestic feel
+      
+      // Try to speak (may be blocked by browser autoplay policies until user interaction)
+      window.speechSynthesis.speak(utterance);
+    }
+
     const timer = setTimeout(() => {
       setShowSplash(false);
     }, 3000);

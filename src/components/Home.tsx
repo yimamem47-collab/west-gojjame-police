@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, ShieldAlert, Users, ClipboardList, FileText, ArrowRight, Lock, CheckCircle, Globe, Phone, Camera, Send, MessageSquare, Facebook } from 'lucide-react';
+import { Shield, ShieldAlert, Users, ClipboardList, FileText, ArrowRight, Lock, CheckCircle, Globe, Phone, Camera, Send, MessageSquare, Facebook, Bot } from 'lucide-react';
 import { sendTelegramMessage, escapeHtml } from '../services/telegramService';
 import { Language, translations } from '../lib/translations';
 import { APP_LOGO } from '../constants';
@@ -7,6 +7,7 @@ import { motion } from 'motion/react';
 import { useState } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
+import { AIAssistant } from './AIAssistant';
 
 interface HomeProps {
   onLogin: () => void;
@@ -36,16 +37,16 @@ export function Home({ onLogin, onSignup, onReport, onViewContacts, onOpenQR, on
     const message = `🚨 አዲስ የፖሊስ ጥቆማ፦\n\n${escapeHtml(quickTip)}`;
     
     try {
-      // Send to Telegram
-      const success = await sendTelegramMessage(message);
-      
-      if (success) {
-        // Save to Firebase
-        await addDoc(collection(db, 'quick_tips'), {
+      // Send to Telegram and Firebase in parallel
+      const [telegramSuccess] = await Promise.all([
+        sendTelegramMessage(message),
+        addDoc(collection(db, 'quick_tips'), {
           tip: quickTip,
           timestamp: serverTimestamp()
-        });
-
+        }).catch(e => console.error("Error saving to Firebase:", e))
+      ]);
+      
+      if (telegramSuccess) {
         // Send to Google Sheets (using the same URL, but with different fields)
         const sheetURL = "https://script.google.com/macros/s/AKfycbw2Bkjrv9SbObSFs0xOlcONYKJKpsa_lqSu2to4PfIKlHoP8U5KVMj0DQYrkvkS_jYS/exec";
         const reportData = {
@@ -171,55 +172,65 @@ export function Home({ onLogin, onSignup, onReport, onViewContacts, onOpenQR, on
         </div>
       </section>
 
-      {/* Quick Tip Section */}
-      <section className="py-20 px-4">
-        <div className="max-w-3xl mx-auto glass-card p-8 md:p-12 border-brand-accent/20">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="p-3 bg-brand-accent/10 rounded-2xl">
-              <MessageSquare className="text-brand-accent" size={32} />
-            </div>
-            <div>
-              <h2 className="text-3xl font-bold">{lang === 'am' ? 'ፈጣን ጥቆማ' : 'Quick Tip'}</h2>
-              <p className="text-brand-text-secondary">{lang === 'am' ? 'ለፖሊስ ፈጣን መረጃ ይስጡ' : 'Provide quick information to the police'}</p>
-            </div>
-          </div>
+      {/* Quick Tip & AI Assistant Section */}
+      <section className="py-20 px-4 bg-brand-card/30">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Quick Tip */}
+            <div className="glass-card p-8 md:p-12 border-brand-accent/20 flex flex-col h-full">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="p-3 bg-brand-accent/10 rounded-2xl">
+                  <MessageSquare className="text-brand-accent" size={32} />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-bold">{lang === 'am' ? 'ፈጣን ጥቆማ' : 'Quick Tip'}</h2>
+                  <p className="text-brand-text-secondary">{lang === 'am' ? 'ለፖሊስ ፈጣን መረጃ ይስጡ' : 'Provide quick information to the police'}</p>
+                </div>
+              </div>
 
-          <div className="space-y-6">
-            <textarea 
-              id="crimeReport"
-              className="input-field min-h-[150px] text-lg"
-              placeholder={lang === 'am' ? 'ጥቆማዎን እዚህ ይጻፉ...' : 'Write your tip here...'}
-              value={quickTip}
-              onChange={(e) => setQuickTip(e.target.value)}
-            />
-            
-            <button 
-              onClick={handleQuickTipSubmit}
-              disabled={sending || sent}
-              className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${
-                sent ? 'bg-emerald-500 text-white' : 'btn-primary'
-              }`}
-            >
-              {sending ? (
-                <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : sent ? (
-                <>
-                  <CheckCircle size={24} />
-                  {lang === 'am' ? 'ጥቆማው ተልኳል!' : 'Tip Sent!'}
-                </>
-              ) : (
-                <>
-                  <Send size={24} />
-                  {lang === 'am' ? 'ጥቆማ ላክ' : 'Send Tip'}
-                </>
-              )}
-            </button>
+              <div className="space-y-6 flex-1 flex flex-col">
+                <textarea 
+                  id="crimeReport"
+                  className="input-field flex-1 min-h-[200px] text-lg resize-none"
+                  placeholder={lang === 'am' ? 'ጥቆማዎን እዚህ ይጻፉ...' : 'Write your tip here...'}
+                  value={quickTip}
+                  onChange={(e) => setQuickTip(e.target.value)}
+                />
+                
+                <button 
+                  onClick={handleQuickTipSubmit}
+                  disabled={sending || sent}
+                  className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${
+                    sent ? 'bg-emerald-500 text-white' : 'btn-primary'
+                  }`}
+                >
+                  {sending ? (
+                    <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : sent ? (
+                    <>
+                      <CheckCircle size={24} />
+                      {lang === 'am' ? 'ጥቆማው ተልኳል!' : 'Tip Sent!'}
+                    </>
+                  ) : (
+                    <>
+                      <Send size={24} />
+                      {lang === 'am' ? 'ጥቆማ ላክ' : 'Send Tip'}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* AI Assistant */}
+            <div className="glass-card p-8 md:p-12 border-brand-accent/20 flex flex-col h-full">
+              <AIAssistant lang={lang} compact={true} />
+            </div>
           </div>
         </div>
       </section>
 
       {/* Features */}
-      <section className="py-20 px-4 bg-brand-card/30">
+      <section className="py-20 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
@@ -248,7 +259,7 @@ export function Home({ onLogin, onSignup, onReport, onViewContacts, onOpenQR, on
       </section>
 
       {/* Security Section */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4 bg-brand-card/30">
         <div className="max-w-7xl mx-auto glass-card p-12 flex flex-col lg:flex-row items-center gap-12">
           <div className="flex-1">
             <h2 className="text-3xl font-bold mb-6">Enterprise-Grade Security</h2>
