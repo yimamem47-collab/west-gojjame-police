@@ -17,7 +17,8 @@ setPersistence(auth, browserLocalPersistence).catch((err) => {
 // Initialize Firestore
 console.log("Firebase Config:", firebaseConfig);
 export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+  experimentalForceLongPolling: true
 }, firebaseConfig.firestoreDatabaseId);
 
 export const googleProvider = new GoogleAuthProvider();
