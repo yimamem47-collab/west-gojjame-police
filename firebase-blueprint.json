@@ -101,6 +101,19 @@
         "timestamp": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "officer_name", "officer_id", "deputy_dept", "main_dept", "wereda", "report_type", "timestamp"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "A message in the AI assistant chat",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string" },
+        "sender": { "type": "string", "enum": ["user", "ai"] },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" }
+      },
+      "required": ["id", "text", "sender", "timestamp", "userId"]
     }
   },
   "firestore": {
@@ -109,6 +122,7 @@
     "/assignments": { "schema": "Assignment", "description": "Collection of officer assignments" },
     "/reports": { "schema": "Report", "description": "Collection of official reports" },
     "/users": { "schema": "User", "description": "Collection of system users" },
-    "/zone_detailed_reports": { "schema": "ZoneReport", "description": "Detailed zone reports" }
+    "/zone_detailed_reports": { "schema": "ZoneReport", "description": "Detailed zone reports" },
+    "/chat_messages": { "schema": "ChatMessage", "description": "AI Assistant chat history" }
   }
 }

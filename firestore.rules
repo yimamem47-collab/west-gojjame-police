@@ -103,9 +103,22 @@ service cloud.firestore {
              (data.timestamp is timestamp || data.timestamp is string);
     }
 
+    function isValidChatMessage(data) {
+      return data.keys().hasAll(['id', 'text', 'sender', 'timestamp', 'userId']) &&
+             data.id is string &&
+             data.text is string && data.text.size() < 5000 &&
+             data.sender in ['user', 'ai'] &&
+             isValidDateString(data.timestamp) &&
+             data.userId == request.auth.uid;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
+
+    match /_internal/connection_test {
+      allow read: if true;
+    }
 
     match /quick_tips/{tipId} {
       allow read: if isAdmin();
@@ -162,6 +175,12 @@ service cloud.firestore {
       allow create: if isValidCommunityReport(request.resource.data);
       allow update: if isAuthenticated() && isValidCommunityReport(request.resource.data);
       allow delete: if isAdmin();
+    }
+
+    match /chat_messages/{messageId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && isValidChatMessage(request.resource.data);
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
     // Default deny
