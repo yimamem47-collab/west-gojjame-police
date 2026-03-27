@@ -21,5 +21,8 @@ export default defineConfig(({mode}) => {
         'Permissions-Policy': 'camera=*, microphone=(), geolocation=()'
       }
     },
+    build: {
+      chunkSizeWarningLimit: 2000
+    }
   };
 });
