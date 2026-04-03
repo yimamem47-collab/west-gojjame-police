@@ -114,6 +114,19 @@
         "userId": { "type": "string" }
       },
       "required": ["id", "text", "sender", "timestamp", "userId"]
+    },
+    "PoliceScan": {
+      "title": "PoliceScan",
+      "description": "A record of a scanned QR/Barcode",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "data": { "type": "string" },
+        "officerId": { "type": "string" },
+        "officerName": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "data", "officerId", "timestamp"]
     }
   },
   "firestore": {
@@ -123,6 +136,7 @@
     "/reports": { "schema": "Report", "description": "Collection of official reports" },
     "/users": { "schema": "User", "description": "Collection of system users" },
     "/zone_detailed_reports": { "schema": "ZoneReport", "description": "Detailed zone reports" },
-    "/chat_messages": { "schema": "ChatMessage", "description": "AI Assistant chat history" }
+    "/chat_messages": { "schema": "ChatMessage", "description": "AI Assistant chat history" },
+    "/police_scans": { "schema": "PoliceScan", "description": "Collection of police scans" }
   }
 }
