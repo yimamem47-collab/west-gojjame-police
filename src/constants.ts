@@ -48,4 +48,5 @@ export const EMERGENCY_CONTACTS = [
   { id: '8', nameKey: 'dembachaZuria', phone: '0582311656' },
 ];
 
-export const APP_LOGO = "https://lh3.googleusercontent.com/u/0/d/1Cs0lYh3PD1lR_cQH4lET3GRUYRF11Z6i";
+// ተስተካክሏል: ምስሉ በትክክል እንዲታይ ወደ '/logo.png' ተቀይሯል
+export const APP_LOGO = "/logo.png";
