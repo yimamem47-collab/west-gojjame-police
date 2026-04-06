@@ -500,3 +500,11 @@ export default function App() {
     </ErrorBoundary>
   );
 }
+VitePWA({
+  registerType: 'autoUpdate', // አዲስ ኮድ ሲኖር በራሱ እንዲቀይር
+  workbox: {
+    cleanupOutdatedCaches: true, // የድሮውን ካሽ (v2) እንዲያጠፋ
+    globPatterns: ['**/*.{js,css,html,png,svg}']
+  },
+  // ... ሌሎች የቀደሙት ሴቲንጎች ይቀጥሉ
+})
