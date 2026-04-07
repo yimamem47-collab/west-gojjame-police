@@ -12,26 +12,36 @@ import {
   clearIndexedDbPersistence
 } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import firebaseConfig from "../firebase-applet-config.json";
+
+// መቶ አለቃ፤ የላክህልኝ ቁልፎች እዚህ ተተክተዋል - አሁን አፑ ፋይል ፍለጋ አይባዝንም
+const firebaseConfig = {
+  projectId: "gen-lang-client-0892131460",
+  appId: "1:349616382718:web:f5673145e668e398463baf",
+  apiKey: "AIzaSyAAJQ48Zfckfp105S92pyHGG2vDIJ9KMYk",
+  authDomain: "gen-lang-client-0892131460.firebaseapp.com",
+  firestoreDatabaseId: "ai-studio-7011afac-a655-4735-88be-0e4554305b7b",
+  storageBucket: "gen-lang-client-0892131460.firebasestorage.app",
+  messagingSenderId: "349616382718"
+};
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 
-// Ensure persistence is set to local
+// Persistence logic
 setPersistence(auth, browserLocalPersistence).catch((err) => {
   console.error("Auth persistence error:", err);
 });
 
-// Initialize Firestore with robust settings
+// Firestore Settings
 const firestoreSettings = {
   localCache: persistentLocalCache({ 
     tabManager: persistentSingleTabManager({}) 
   }),
   experimentalAutoDetectLongPolling: true,
   longPollingOptions: {
-    timeoutSeconds: 20 // ወደ 20 ዝቅ ተደርጓል ለፍጥነት
+    timeoutSeconds: 20 
   },
   useFetchStreams: false,
   ignoreUndefinedProperties: true,
@@ -39,16 +49,12 @@ const firestoreSettings = {
   ssl: true,
 };
 
-const dbId = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== "(default)" 
-  ? firebaseConfig.firestoreDatabaseId 
-  : undefined;
+// Database ID ከ config በቀጥታ ይወሰዳል
+const dbId = firebaseConfig.firestoreDatabaseId;
 
 // Initialize Firestore
 export let db = initializeFirestore(app, firestoreSettings, dbId);
 
-/**
- * Forcefully clears the Firestore cache and restarts the instance.
- */
 export async function clearFirestoreCache() {
   try {
     await terminate(db);
@@ -61,9 +67,6 @@ export async function clearFirestoreCache() {
   }
 }
 
-/**
- * Forcefully tries to re-enable the network connection.
- */
 export async function forceReconnect() {
   try {
     await disableNetwork(db);
@@ -78,7 +81,6 @@ export async function forceReconnect() {
 
 export const googleProvider = new GoogleAuthProvider();
 
-// Connection status tracking
 let isFirestoreConnected = false;
 const connectionListeners: ((connected: boolean) => void)[] = [];
 
@@ -99,15 +101,11 @@ const setFirestoreStatus = (status: boolean) => {
   }
 };
 
-/**
- * ተሻሽሏል፡ አፑ በፍጥነት እንዲከፍት retries ወደ 3 ዝቅ ተደርጓል፣ 5 ሰከንድ መጠበቁ ቀርቷል
- */
 export async function testConnection(retries = 3) {
-  // ወዲያውኑ መሞከር እንዲጀምር (ያለ 5 ሰከንድ ቆይታ)
   for (let i = 0; i < retries; i++) {
     if (!navigator.onLine) {
       setFirestoreStatus(false);
-      return; // ኢንተርኔት ከሌለ ወዲያውኑ አቁም
+      return;
     }
 
     try {
@@ -116,7 +114,7 @@ export async function testConnection(retries = 3) {
       
       const fetchPromise = getDocFromServer(testDoc);
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 5000) // 5 ሰከንድ ብቻ ጠብቅ
+        setTimeout(() => reject(new Error('Timeout')), 5000)
       );
 
       await Promise.race([fetchPromise, timeoutPromise]);
@@ -124,22 +122,18 @@ export async function testConnection(retries = 3) {
       return; 
     } catch (error: any) {
       const errorCode = error?.code || '';
-      // ሰርቨሩን ከነካነው (ባይፈቀድልንም እንኳ) እንደተገናኘን እንቆጥራለን
       if (errorCode && errorCode !== 'unavailable' && errorCode !== 'failed-precondition') {
         setFirestoreStatus(true);
         return;
       }
-
       if (i < retries - 1) {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
   }
-  // መገናኘት ባይችል እንኳ አፑን አያግደውም (Offline Mode)
   setFirestoreStatus(false);
 }
 
-// አፑ እንደተከፈተ ወዲያውኑ ቼክ እንዲያደርግ
 setTimeout(() => testConnection(), 500);
 
 export enum OperationType {
@@ -151,20 +145,11 @@ export enum OperationType {
   WRITE = 'write',
 }
 
-/**
- * ስህተቶች አፑን እንዳያቆሙ ተደርጓል
- */
 export function handleFirestoreError(error: any, operationType: OperationType, path: string | null) {
   const errorMessage = error instanceof Error ? error.message : String(error);
   const errorCode = error?.code || '';
-  
   console.warn('Firestore Operation Issue:', errorCode, errorMessage);
-  
-  if (
-    errorCode === 'unavailable' || 
-    errorMessage.includes('offline') || 
-    errorMessage.includes('network')
-  ) {
-    return; // ዝም ብለህ እለፈው (Don't crash)
+  if (errorCode === 'unavailable' || errorMessage.includes('offline') || errorMessage.includes('network')) {
+    return;
   }
 }
