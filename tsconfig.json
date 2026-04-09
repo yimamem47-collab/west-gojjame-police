@@ -16,7 +16,7 @@
     "allowJs": true,
     "jsx": "react-jsx",
     "resolveJsonModule": true,
-    "types": ["vite/client"],
+    "types": ["vite/client", "vite-plugin-pwa/client"],
     "paths": {
       "@/*": [
         "./*"
@@ -24,5 +24,7 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "android"]
 }
