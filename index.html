@@ -1,6 +1,10 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      // Immediate safety check for VitePWA to prevent ReferenceError in any bundle
+      window.VitePWA = window.VitePWA || {};
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>West Gojjam Zone Police | Management System</title>

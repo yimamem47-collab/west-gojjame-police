@@ -12,10 +12,13 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: [], // Removed missing assets
+        injectRegister: false,
         workbox: {
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-          globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          cleanupOutdatedCaches: true,
+          clientsClaim: true,
+          skipWaiting: true
         },
         manifest: {
           name: 'Police Management System',
@@ -39,6 +42,8 @@ export default defineConfig(({mode}) => {
     ],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || ''),
+      'global': 'window',
+      'VitePWA': '{}',
     },
     resolve: {
       alias: {
