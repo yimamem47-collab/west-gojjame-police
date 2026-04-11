@@ -4,7 +4,11 @@ const config: CapacitorConfig = {
   appId: 'com.westgojjam.police',
   appName: 'West Gojjam Police',
   webDir: 'dist',
-  bundledWebRuntime: false
+  bundledWebRuntime: false,
+  server: {
+    url: 'https://west-gojjame-police-5svt.vercel.app/',
+    cleartext: true
+  }
 };
 
 export default config;
