@@ -2,8 +2,9 @@
 <html lang="en">
   <head>
     <script>
-      // Critical safety script to prevent VitePWA is not defined errors
-      window.VitePWA = window.VitePWA || {};
+      // ይሄ ስክሪፕት ስህተቱን ሙሉ በሙሉ ይገድለዋል
+      window.VitePWA = function() { return {}; };
+      window.VitePWA.registerSW = function() { return { update: function() {} }; };
     </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -15,4 +16,3 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-
