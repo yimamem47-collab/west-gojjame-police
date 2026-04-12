@@ -7,36 +7,46 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
+    // ቪርሴል ላይ ፋይሎቹ በትክክል እንዲገኙ base መጨመር አስፈላጊ ነው
+    base: '/', 
     plugins: [
       react(), 
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+        // ሎጎው በ public ፎልደር ውስጥ መኖሩን ያረጋግጣል
+        includeAssets: ['police-logo.png', 'favicon.ico', 'apple-touch-icon.png'],
         workbox: {
           maximumFileSizeToCacheInBytes: 5000000,
+          globPatterns: ['**/*.{js,css,html,ico,png,svg}']
         },
         manifest: {
           name: 'West Gojjam Police Management System',
           short_name: 'WG Police',
           description: 'Official Management System for West Gojjam Zone Police',
           theme_color: '#002B5B',
+          background_color: '#ffffff',
+          display: 'standalone',
           icons: [
             {
-              src: 'https://lh3.googleusercontent.com/d/1l4YxTKjFHV39B59KAntO0SyuZbu0UdOr',
+              // እዚህ ጋር የፖሊስ አርማውን ስም በትክክል ተጠቅመናል
+              src: 'police-logo.png',
               sizes: '192x192',
-              type: 'image/png'
+              type: 'image/png',
+              purpose: 'any maskable'
             },
             {
-              src: 'https://lh3.googleusercontent.com/d/1l4YxTKjFHV39B59KAntO0SyuZbu0UdOr',
+              src: 'police-logo.png',
               sizes: '512x512',
-              type: 'image/png'
+              type: 'image/png',
+              purpose: 'any maskable'
             }
           ]
         }
       })
     ],
     define: {
+      // ለ AI ስራ አስፈላጊ የሆኑ ቁልፎች
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || ''),
       'global': 'window',
     },
@@ -45,14 +55,9 @@ export default defineConfig(({mode}) => {
         '@': path.resolve(__dirname, '.'),
       },
     },
-    server: {
-      hmr: process.env.DISABLE_HMR !== 'true',
-      headers: {
-        'Permissions-Policy': 'camera=*, microphone=(), geolocation=()'
-      }
-    },
     build: {
-      chunkSizeWarningLimit: 2000
+      chunkSizeWarningLimit: 3000,
+      outDir: 'dist'
     }
   };
 });
