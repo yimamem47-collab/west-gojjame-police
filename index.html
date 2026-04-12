@@ -2,13 +2,12 @@
 <html lang="en">
   <head>
     <script>
-      // ይሄ ስክሪፕት ስህተቱን ሙሉ በሙሉ ይገድለዋል
-      window.VitePWA = function() { return {}; };
-      window.VitePWA.registerSW = function() { return { update: function() {} }; };
+      // Critical safety script to prevent VitePWA is not defined errors
+      window.VitePWA = window.VitePWA || {};
     </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <link rel="icon" type="image/png" href="/police-logo.png" />
+    <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/d/1l4YxTKjFHV39B59KAntO0SyuZbu0UdOr" />
     <title>West Gojjam Zone Police | Management System</title>
   </head>
   <body>
@@ -16,3 +15,4 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
+
