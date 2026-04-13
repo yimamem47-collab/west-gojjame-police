@@ -7,14 +7,15 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
-    base: '/',
+    // ቪርሴል ላይ ፋይሎቹ በትክክል እንዲገኙ base መጨመር አስፈላጊ ነው
+    base: '/', 
     plugins: [
       react(), 
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        // እዚህ ጋር ያሉ ፋይሎች በ public/ ፎልደር ውስጥ መኖራቸውን እርግጠኛ ሁን
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg', 'police-logo.png'],
+        // ሎጎው በ public ፎልደር ውስጥ መኖሩን ያረጋግጣል
+        includeAssets: ['police-logo.png', 'favicon.ico', 'apple-touch-icon.png'],
         workbox: {
           maximumFileSizeToCacheInBytes: 5000000,
           globPatterns: ['**/*.{js,css,html,ico,png,svg}']
@@ -28,14 +29,14 @@ export default defineConfig(({mode}) => {
           display: 'standalone',
           icons: [
             {
-              // አድራሻውን ወደ ፋይሉ ስም ብቻ ቀይረነዋል
-              src: 'police-logo.png',
+              // እዚህ ጋር የፖሊስ አርማውን ስም በትክክል ተጠቅመናል
+              src: '/police-logo.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any maskable'
             },
             {
-              src: 'police-logo.png',
+              src: '/police-logo.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
@@ -45,6 +46,7 @@ export default defineConfig(({mode}) => {
       })
     ],
     define: {
+      // ለ AI ስራ አስፈላጊ የሆኑ ቁልፎች
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || ''),
       'global': 'window',
     },
