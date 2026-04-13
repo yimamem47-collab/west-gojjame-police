@@ -14,8 +14,8 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        // Removed police-logo.png to prevent 404s as we use external URL
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+        // ሎጎው በ public ፎልደር ውስጥ መኖሩን ያረጋግጣል
+        includeAssets: ['police-logo.png', 'favicon.ico', 'apple-touch-icon.png'],
         workbox: {
           maximumFileSizeToCacheInBytes: 5000000,
           globPatterns: ['**/*.{js,css,html,ico,png,svg}']
@@ -30,13 +30,13 @@ export default defineConfig(({mode}) => {
           icons: [
             {
               // እዚህ ጋር የፖሊስ አርማውን ስም በትክክል ተጠቅመናል
-              src: 'https://lh3.googleusercontent.com/d/1l4YxTKjFHV39B59KAntO0SyuZbu0UdOr',
+              src: '/police-logo.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any maskable'
             },
             {
-              src: 'https://lh3.googleusercontent.com/d/1l4YxTKjFHV39B59KAntO0SyuZbu0UdOr',
+              src: '/police-logo.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'

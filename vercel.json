@@ -3,7 +3,7 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/((?!assets/|police-logo.png|favicon.ico|manifest.webmanifest|sw.js|workbox-.*).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
