@@ -2,8 +2,19 @@
 <html lang="en">
   <head>
     <script>
-      // Critical safety script to prevent VitePWA is not defined errors
-      window.VitePWA = window.VitePWA || {};
+      // Ultimate safety script for VitePWA to prevent crashes
+      (function() {
+        const noop = () => ({});
+        const proxy = new Proxy(noop, {
+          get: (target, prop) => {
+            if (prop === 'then') return undefined;
+            if (prop === 'register' || prop === 'updateServiceWorker') return noop;
+            return proxy;
+          },
+          apply: () => ({})
+        });
+        window.VitePWA = window.VitePWA || proxy;
+      })();
     </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
