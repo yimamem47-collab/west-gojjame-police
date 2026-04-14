@@ -14,11 +14,14 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        // ሎጎው በ public ፎልደር ውስጥ መኖሩን ያረጋግጣል
+        injectRegister: 'auto',
         includeAssets: ['police-logo.png', 'favicon.ico', 'apple-touch-icon.png'],
         workbox: {
           maximumFileSizeToCacheInBytes: 5000000,
-          globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          cleanupOutdatedCaches: true,
+          clientsClaim: true,
+          skipWaiting: true
         },
         manifest: {
           name: 'West Gojjam Police Management System',
@@ -27,19 +30,33 @@ export default defineConfig(({mode}) => {
           theme_color: '#002B5B',
           background_color: '#ffffff',
           display: 'standalone',
+          orientation: 'portrait',
+          scope: '/',
+          start_url: '/',
           icons: [
             {
-              // እዚህ ጋር የፖሊስ አርማውን ስም በትክክል ተጠቅመናል
               src: 'police-logo.png',
               sizes: '192x192',
               type: 'image/png',
-              purpose: 'any maskable'
+              purpose: 'any'
             },
             {
               src: 'police-logo.png',
               sizes: '512x512',
               type: 'image/png',
-              purpose: 'any maskable'
+              purpose: 'any'
+            },
+            {
+              src: 'police-logo.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'maskable'
+            },
+            {
+              src: 'police-logo.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable'
             }
           ]
         }
