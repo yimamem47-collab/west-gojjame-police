@@ -30,13 +30,13 @@ export default defineConfig(({mode}) => {
           icons: [
             {
               // እዚህ ጋር የፖሊስ አርማውን ስም በትክክል ተጠቅመናል
-              src: '/police-logo.png',
+              src: 'police-logo.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any maskable'
             },
             {
-              src: '/police-logo.png',
+              src: 'police-logo.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
