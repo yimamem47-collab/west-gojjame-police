@@ -8,7 +8,7 @@ export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
     // ቪርሴል ላይ ፋይሎቹ በትክክል እንዲገኙ base መጨመር አስፈላጊ ነው
-    base: '/', 
+    base: mode === 'production' ? './' : '/', 
     plugins: [
       react(), 
       tailwindcss(),
