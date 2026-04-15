@@ -130,7 +130,7 @@
     }
   },
   "firestore": {
-    "/incidents": { "schema": "Incident", "description": "Collection of police incidents" },
+    "/WestGojjam_Reports": { "schema": "Incident", "description": "Collection of police incidents" },
     "/officers": { "schema": "Officer", "description": "Collection of police officers" },
     "/assignments": { "schema": "Assignment", "description": "Collection of officer assignments" },
     "/reports": { "schema": "Report", "description": "Collection of official reports" },

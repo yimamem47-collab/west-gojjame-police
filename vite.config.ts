@@ -14,8 +14,8 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        injectRegister: 'auto',
-        includeAssets: ['police-logo.png', 'favicon.ico', 'apple-touch-icon.png'],
+        injectRegister: 'inline',
+        includeAssets: ['police-logo.png'],
         workbox: {
           maximumFileSizeToCacheInBytes: 5000000,
           globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
@@ -35,25 +35,25 @@ export default defineConfig(({mode}) => {
           start_url: '/',
           icons: [
             {
-              src: 'police-logo.png',
+              src: '/police-logo.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any'
             },
             {
-              src: 'police-logo.png',
+              src: '/police-logo.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any'
             },
             {
-              src: 'police-logo.png',
+              src: '/police-logo.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'maskable'
             },
             {
-              src: 'police-logo.png',
+              src: '/police-logo.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable'
