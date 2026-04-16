@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="icon" type="image/png" href="/police-logo.png" />
+    <title>West Gojjam Zone Police | Management System</title>
+    <script>
+      // Safety check to prevent ReferenceError: VitePWA is not defined
+      // This can happen if old cached code tries to access it
+      window.VitePWA = window.VitePWA || {
+        registerServiceWorker: function() { console.log('VitePWA.registerServiceWorker stub called'); },
+        updateServiceWorker: function() { console.log('VitePWA.updateServiceWorker stub called'); }
+      };
+      // Define as global variable too for strict mode modules
+      var VitePWA = window.VitePWA;
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
