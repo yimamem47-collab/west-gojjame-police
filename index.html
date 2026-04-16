@@ -8,12 +8,18 @@
     <script>
       // Safety check to prevent ReferenceError: VitePWA is not defined
       // This can happen if old cached code tries to access it
-      window.VitePWA = window.VitePWA || {
-        registerServiceWorker: function() { console.log('VitePWA.registerServiceWorker stub called'); },
-        updateServiceWorker: function() { console.log('VitePWA.updateServiceWorker stub called'); }
-      };
-      // Define as global variable too for strict mode modules
-      var VitePWA = window.VitePWA;
+      (function() {
+        var stub = function() { 
+          console.log('VitePWA called as function'); 
+          return stub; 
+        };
+        stub.registerServiceWorker = function() { console.log('VitePWA.registerServiceWorker stub called'); };
+        stub.updateServiceWorker = function() { console.log('VitePWA.updateServiceWorker stub called'); };
+        
+        window.VitePWA = window.VitePWA || stub;
+        // Global var for strict mode modules
+        window.VitePWA_Stub = true;
+      })();
     </script>
   </head>
   <body>

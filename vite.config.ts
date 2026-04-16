@@ -46,25 +46,25 @@ export default defineConfig(({mode}) => {
           start_url: '/',
           icons: [
             {
-              src: '/police-logo.png',
+              src: 'police-logo.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any'
             },
             {
-              src: '/police-logo.png',
+              src: 'police-logo.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any'
             },
             {
-              src: '/police-logo.png',
+              src: 'police-logo.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'maskable'
             },
             {
-              src: '/police-logo.png',
+              src: 'police-logo.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable'
