@@ -3,8 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/d/1l4YxTKjFHV39B59KAntO0SyuZbu0UdOr" />
+    <link rel="icon" type="image/png" href="/police-logo.png" />
     <title>West Gojjam Zone Police | Management System</title>
+    <script>
+      // Safety check to prevent ReferenceError: VitePWA is not defined
+      // This can happen if old cached code tries to access it
+      window.VitePWA = window.VitePWA || {};
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -8,7 +8,7 @@ export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
     // ቪርሴል ላይ ፋይሎቹ በትክክል እንዲገኙ base መጨመር አስፈላጊ ነው
-    base: mode === 'production' ? './' : '/', 
+    base: '/', 
     plugins: [
       react(), 
       tailwindcss(),
@@ -35,25 +35,25 @@ export default defineConfig(({mode}) => {
           start_url: '/',
           icons: [
             {
-              src: '/police-logo.png',
+              src: 'police-logo.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any'
             },
             {
-              src: '/police-logo.png',
+              src: 'police-logo.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any'
             },
             {
-              src: '/police-logo.png',
+              src: 'police-logo.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'maskable'
             },
             {
-              src: '/police-logo.png',
+              src: 'police-logo.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable'
