@@ -126,6 +126,14 @@ service cloud.firestore {
     // Rules
     // ===============================================================
 
+    // Allow public read for connectivity testing to speed up handshake checks
+    match /connectivity_test/{docId} {
+      allow read: if true;
+    }
+    match /_connectivity_test_/{docId} {
+      allow read: if true;
+    }
+
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(userId) || isAdmin());
