@@ -1,28 +1,27 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig, loadEnv} from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-export default defineConfig(({mode}) => {
+export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
-    // ቪርሴል ላይ ፋይሎቹ በትክክል እንዲገኙ base መጨመር አስፈላጊ ነው
-    base: '/', 
+    base: '/',
     plugins: [
-      react(), 
+      react(),
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'script',
-        includeAssets: ['police-logo.png'],
+        includeAssets: ['police-logo.png', 'favicon.png', 'robots.txt', 'splash-logo.png', 'transparent-logo.png'],
         workbox: {
-          maximumFileSizeToCacheInBytes: 5000000,
-          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,json,vue,txt,woff2}'],
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           skipWaiting: true,
-          navigateFallback: 'index.html',
+          navigateFallback: '/index.html',
+          maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10MB
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
@@ -31,41 +30,64 @@ export default defineConfig(({mode}) => {
             {
               urlPattern: /^https:\/\/api\.telegram\.org\/.*/i,
               handler: 'NetworkOnly',
-            }
+            },
+            {
+              urlPattern: /^https:\/\/picsum\.photos\/.*/i,
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'picsum-images',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 Days
+                },
+              },
+            },
+            {
+              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'google-fonts-stylesheets',
+              },
+            },
+            {
+              urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'google-fonts-webfonts',
+                expiration: {
+                  maxEntries: 20,
+                  maxAgeSeconds: 60 * 60 * 24 * 365, // 1 Year
+                },
+              },
+            },
           ]
         },
         manifest: {
-          name: 'West Gojjam Police Management System',
-          short_name: 'WG Police',
-          description: 'Official Management System for West Gojjam Zone Police',
-          theme_color: '#002B5B',
-          background_color: '#ffffff',
+          name: 'Amhara Region Police Management System',
+          short_name: 'Amhara Police',
+          description: 'Official Digital Management System for Amhara Region Police Department, Ethiopia.',
+          theme_color: '#1A237E',
+          background_color: '#1A237E',
           display: 'standalone',
           orientation: 'portrait',
           scope: '/',
           start_url: '/',
           icons: [
             {
-              src: 'police-logo.png',
-              sizes: '192x192',
+              src: 'favicon.png',
+              sizes: '256x256',
               type: 'image/png',
               purpose: 'any'
             },
             {
               src: 'police-logo.png',
-              sizes: '512x512',
+              sizes: '1024x1024',
               type: 'image/png',
               purpose: 'any'
             },
             {
-              src: 'police-logo.png',
-              sizes: '192x192',
-              type: 'image/png',
-              purpose: 'maskable'
-            },
-            {
-              src: 'police-logo.png',
-              sizes: '512x512',
+              src: 'rounded-app-icon.png',
+              sizes: '1024x1024',
               type: 'image/png',
               purpose: 'maskable'
             }
@@ -74,18 +96,28 @@ export default defineConfig(({mode}) => {
       })
     ],
     define: {
-      // ለ AI ስራ አስፈላጊ የሆኑ ቁልፎች
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || ''),
       'global': 'window',
     },
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(__dirname, './src'),
       },
     },
     build: {
-      chunkSizeWarningLimit: 3000,
-      outDir: 'dist'
+      chunkSizeWarningLimit: 2000,
+      outDir: 'dist',
+      sourcemap: false,
+      minify: 'esbuild',
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom'],
+            'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
+            'vendor-ui': ['lucide-react', 'motion', 'recharts'],
+          }
+        }
+      }
     }
   };
 });
