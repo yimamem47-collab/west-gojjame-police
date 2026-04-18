@@ -74,19 +74,19 @@ export default defineConfig(({ mode }) => {
           start_url: '/',
           icons: [
             {
-              src: 'favicon.png',
+              src: '/favicon.png',
               sizes: '256x256',
               type: 'image/png',
               purpose: 'any'
             },
             {
-              src: 'police-logo.png',
+              src: '/police-logo.png',
               sizes: '1024x1024',
               type: 'image/png',
               purpose: 'any'
             },
             {
-              src: 'rounded-app-icon.png',
+              src: '/rounded-app-icon.png',
               sizes: '1024x1024',
               type: 'image/png',
               purpose: 'maskable'
