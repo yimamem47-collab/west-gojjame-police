@@ -1,5 +1,5 @@
 {
-  "name": "West Gojjam Zone Police Application",
+  "name": "West Gojjam Zone Police Management System",
   "description": "Official management system for the West Gojjam Zone Police department, tracking incidents, officers, and community reports.",
   "requestFramePermissions": ["camera", "microphone", "geolocation"]
 }
