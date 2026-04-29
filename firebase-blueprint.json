@@ -10,15 +10,57 @@
         "status": { "type": "string", "enum": ["Open", "In Progress", "Closed"] },
         "date": { "type": "string" },
         "location": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
         "officerId": { "type": "string" },
         "filingStation": { "type": "string" },
         "recordingOfficerName": { "type": "string" },
         "recordingOfficerRank": { "type": "string" },
         "type": { "type": "string", "enum": ["Crime", "Traffic"] },
         "category": { "type": "string" },
-        "description": { "type": "string" }
+        "description": { "type": "string" },
+        "photos": { "type": "array", "items": { "type": "string" } },
+        "trafficDetails": { "$ref": "#/entities/TrafficDetails" }
       },
       "required": ["id", "title", "status", "date", "location", "officerId", "type", "category"]
+    },
+    "TrafficDetails": {
+      "title": "TrafficDetails",
+      "description": "Details specifically for traffic accidents",
+      "type": "object",
+      "properties": {
+        "accidentType": { "type": "string" },
+        "accidentImpact": { "type": "string" },
+        "numDeaths": { "type": "number" },
+        "numHeavyInjuries": { "type": "number" },
+        "numLightInjuries": { "type": "number" },
+        "propertyDamageEstimate": { "type": "string" },
+        "driverExperience": { "type": "string" },
+        "vehicleType": { "type": "string" },
+        "plateNumber": { "type": "string" },
+        "licenseGrade": { "type": "string" },
+        "accidentCause": { "type": "string" },
+        "reporterName": { "type": "string" },
+        "reporterAddress": { "type": "string" },
+        "reporterPhone": { "type": "string" }
+      }
+    },
+    "CommunityReport": {
+      "title": "CommunityReport",
+      "description": "A report submitted by a citizen",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "reporterName": { "type": "string" },
+        "reporterPhone": { "type": "string" },
+        "reporterEmail": { "type": "string" },
+        "location": { "type": "string" },
+        "date": { "type": "string" },
+        "details": { "type": "string" },
+        "status": { "type": "string", "enum": ["New", "Reviewed", "Action Taken"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "reporterName", "reporterPhone", "location", "date", "details", "status", "timestamp"]
     },
     "Officer": {
       "title": "Officer",
@@ -137,6 +179,7 @@
     "/users": { "schema": "User", "description": "Collection of system users" },
     "/zone_detailed_reports": { "schema": "ZoneReport", "description": "Detailed zone reports" },
     "/chat_messages": { "schema": "ChatMessage", "description": "AI Assistant chat history" },
-    "/police_scans": { "schema": "PoliceScan", "description": "Collection of police scans" }
+    "/police_scans": { "schema": "PoliceScan", "description": "Collection of police scans" },
+    "/community_reports": { "schema": "CommunityReport", "description": "Citizen reported tips and crimes" }
   }
 }

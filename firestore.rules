@@ -42,12 +42,14 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin' ||
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin') ||
           (request.auth.token.email == "Yimamem47@gmail.com" && request.auth.token.email_verified == true));
     }
 
     function isOfficer() {
-      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Officer';
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Officer';
     }
 
     function hasOnlyAllowedFields(fields) {
@@ -66,30 +68,47 @@ service cloud.firestore {
       return ts is string && ts.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
     }
 
+    function isValidTrafficDetails(data) {
+      return data == null || (
+        (data.accidentType is string || data.accidentType == null) &&
+        (data.plateNumber is string || data.plateNumber == null)
+      );
+    }
+
     // ===============================================================
     // Domain Validators
     // ===============================================================
 
     function isValidUser(data) {
       return hasRequiredFields(['id', 'name', 'email', 'role']) &&
-             data.id is string && data.name is string && data.name.size() > 0 &&
+             data.id is string && data.id.size() > 0 &&
+             data.name is string && data.name.size() > 0 &&
              data.email is string && isValidEmail(data.email) &&
              data.role in ['Admin', 'Officer'];
     }
 
     function isValidIncident(data) {
       return hasRequiredFields(['id', 'title', 'status', 'date', 'location', 'officerId', 'type', 'category']) &&
-             data.id is string && data.title is string && data.title.size() > 0 &&
+             data.id is string && data.id.size() > 0 &&
+             data.title is string && data.title.size() > 0 &&
              data.status in ['Open', 'In Progress', 'Closed'] &&
              data.officerId is string &&
-             data.type in ['Crime', 'Traffic'];
+             data.type in ['Crime', 'Traffic'] &&
+             isValidTrafficDetails(data.get('trafficDetails', null));
     }
 
     function isValidOfficer(data) {
       return hasRequiredFields(['id', 'name', 'badgeNumber', 'rank', 'email', 'status']) &&
              data.id is string && data.name is string && data.badgeNumber is string &&
              data.email is string && isValidEmail(data.email) &&
-             data.status in ['Active', 'On Leave', 'Suspended'];
+             data.status in ['Active', 'On Leave', 'Suspended', 'Lost'];
+    }
+
+    function isValidCommunityReport(data) {
+      return hasRequiredFields(['id', 'reporterName', 'reporterPhone', 'location', 'date', 'details', 'status', 'timestamp']) &&
+             data.id is string && data.reporterName is string &&
+             data.status in ['New', 'Reviewed', 'Action Taken'] &&
+             isValidTimestamp(data.timestamp);
     }
 
     function isValidAssignment(data) {
@@ -142,37 +161,37 @@ service cloud.firestore {
     }
 
     match /WestGojjam_Reports/{reportId} {
-      allow read: if isAuthenticated() && (isAdmin() || resource.data.officerId == request.auth.uid);
-      allow create: if isAuthenticated() && isValidIncident(request.resource.data) && (isAdmin() || request.resource.data.officerId == request.auth.uid);
-      allow update: if isAuthenticated() && isValidIncident(request.resource.data) && (isAdmin() || resource.data.officerId == request.auth.uid);
+      allow read: if isAuthenticated() && (isAdmin() || isOfficer());
+      allow create: if (isAdmin() || isOfficer()) && isValidIncident(request.resource.data);
+      allow update: if (isAdmin() || (isOfficer() && resource.data.officerId == request.auth.uid)) && isValidIncident(request.resource.data);
       allow delete: if isAdmin();
     }
 
     match /officers/{officerId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidOfficer(request.resource.data) && (isAdmin() || request.resource.data.id == request.auth.uid);
-      allow update: if isAuthenticated() && isValidOfficer(request.resource.data) && (isAdmin() || resource.data.id == request.auth.uid);
+      allow create: if isAdmin() || (isAuthenticated() && request.resource.data.id == request.auth.uid);
+      allow update: if isAdmin() || (isAuthenticated() && resource.data.id == request.auth.uid);
       allow delete: if isAdmin();
     }
 
     match /assignments/{assignmentId} {
-      allow read: if isAuthenticated() && (isAdmin() || resource.data.officerId == request.auth.uid);
-      allow create: if isAuthenticated() && isValidAssignment(request.resource.data) && (isAdmin() || request.resource.data.officerId == request.auth.uid);
-      allow update: if isAuthenticated() && isValidAssignment(request.resource.data) && (isAdmin() || resource.data.officerId == request.auth.uid);
+      allow read: if isAuthenticated() && (isAdmin() || isOfficer());
+      allow create: if isAdmin() || isOfficer();
+      allow update: if isAdmin() || (isOfficer() && resource.data.officerId == request.auth.uid);
       allow delete: if isAdmin();
     }
 
     match /reports/{reportId} {
-      allow read: if isAuthenticated() && (isAdmin() || resource.data.officerId == request.auth.uid);
-      allow create: if isAuthenticated() && isValidReport(request.resource.data) && (isAdmin() || request.resource.data.officerId == request.auth.uid);
-      allow update: if isAuthenticated() && isValidReport(request.resource.data) && (isAdmin() || resource.data.officerId == request.auth.uid);
+      allow read: if isAuthenticated() && (isAdmin() || isOfficer());
+      allow create: if (isAdmin() || isOfficer()) && isValidReport(request.resource.data);
+      allow update: if isAdmin() || (isOfficer() && resource.data.officerId == request.auth.uid);
       allow delete: if isAdmin();
     }
 
     match /zone_detailed_reports/{reportId} {
-      allow read: if isAuthenticated() && (isAdmin() || resource.data.officer_id == request.auth.uid);
-      allow create: if isAuthenticated() && isValidZoneReport(request.resource.data) && (isAdmin() || request.resource.data.officer_id == request.auth.uid);
-      allow update: if isAuthenticated() && isValidZoneReport(request.resource.data) && (isAdmin() || resource.data.officer_id == request.auth.uid);
+      allow read: if isAuthenticated() && (isAdmin() || isOfficer());
+      allow create: if (isAdmin() || isOfficer()) && isValidZoneReport(request.resource.data);
+      allow update: if isAdmin() || (isOfficer() && resource.data.officer_id == request.auth.uid);
       allow delete: if isAdmin();
     }
 
@@ -185,7 +204,7 @@ service cloud.firestore {
 
     match /community_reports/{reportId} {
       allow read: if isAdmin();
-      allow create: if isAuthenticated();
+      allow create: if isValidCommunityReport(request.resource.data);
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
