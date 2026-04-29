@@ -14,11 +14,11 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        injectRegister: 'script',
-        includeAssets: ['police-logo.png'],
+        injectRegister: 'auto',
+        includeAssets: ['police-logo.png', 'logo.png', 'favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
         workbox: {
-          maximumFileSizeToCacheInBytes: 5000000,
-          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          maximumFileSizeToCacheInBytes: 6000000,
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'],
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           skipWaiting: true,
@@ -31,6 +31,17 @@ export default defineConfig(({mode}) => {
             {
               urlPattern: /^https:\/\/api\.telegram\.org\/.*/i,
               handler: 'NetworkOnly',
+            },
+            {
+                urlPattern: /^https:\/\/firebasestorage\.googleapis\.com\/.*/i,
+                handler: 'StaleWhileRevalidate',
+                options: {
+                    cacheName: 'firebase-storage',
+                    expiration: {
+                        maxEntries: 50,
+                        maxAgeSeconds: 30 * 24 * 60 * 60 // 30 Days
+                    }
+                }
             }
           ]
         },
@@ -46,25 +57,31 @@ export default defineConfig(({mode}) => {
           start_url: '/',
           icons: [
             {
-              src: 'police-logo.png',
+              src: '/police-logo.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any'
             },
             {
-              src: 'police-logo.png',
+              src: '/logo.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
+              src: '/police-logo.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any'
             },
             {
-              src: 'police-logo.png',
+              src: '/police-logo.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'maskable'
             },
             {
-              src: 'police-logo.png',
+              src: '/police-logo.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable'
