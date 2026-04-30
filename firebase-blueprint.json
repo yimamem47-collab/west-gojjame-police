@@ -113,6 +113,53 @@
       },
       "required": ["id", "title", "status", "date", "location", "officerId", "type", "category"]
     },
+    "CorruptionReport": {
+      "title": "CorruptionReport",
+      "description": "A corruption tip report",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tipType": { "type": "string" },
+        "reporterName": { "type": "string" },
+        "reporterPhone": { "type": "string" },
+        "reporterEmail": { "type": "string" },
+        "location": { "type": "string" },
+        "woreda": { "type": "string" },
+        "details": { "type": "string" },
+        "otherInfo": { "type": "string" },
+        "status": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+    "TrafficPoliceContact": {
+      "title": "TrafficPoliceContact",
+      "description": "Contact info for traffic police",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "category": { "type": "string" }
+      }
+    },
+    "CorruptionReport": {
+      "title": "CorruptionReport",
+      "description": "Report of corruption or unethical behavior",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tipType": { "type": "string" },
+        "reporterName": { "type": "string" },
+        "reporterPhone": { "type": "string" },
+        "reporterEmail": { "type": "string" },
+        "details": { "type": "string" },
+        "location": { "type": "string" },
+        "woreda": { "type": "string" },
+        "other": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    },
     "User": {
       "title": "User",
       "description": "A system user",
