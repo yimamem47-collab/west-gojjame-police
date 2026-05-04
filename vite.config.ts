@@ -63,12 +63,6 @@ export default defineConfig(({mode}) => {
               purpose: 'any'
             },
             {
-              src: '/logo.png',
-              sizes: '192x192',
-              type: 'image/png',
-              purpose: 'any'
-            },
-            {
               src: '/police-logo.png',
               sizes: '512x512',
               type: 'image/png',
@@ -91,8 +85,8 @@ export default defineConfig(({mode}) => {
       })
     ],
     define: {
-      // ለ AI ስራ አስፈላጊ የሆኑ ቁልፎች
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || ''),
+      // ለ AI ስራ አስፈላጊ የሆኑ ቁልፎች - Supports both platform injected and local .env keys
+      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || ''),
       'global': 'window',
     },
     resolve: {
@@ -102,6 +96,17 @@ export default defineConfig(({mode}) => {
     },
     build: {
       chunkSizeWarningLimit: 3000,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom'],
+            'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
+            'vendor-ui': ['motion', 'lucide-react', 'clsx', 'tailwind-merge'],
+            'vendor-charts': ['recharts'],
+            'vendor-maps': ['leaflet', 'react-leaflet']
+          }
+        }
+      },
       outDir: 'dist'
     }
   };
