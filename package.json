@@ -4,7 +4,8 @@
   "version": "1.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite --port=3000 --host=0.0.0.0",
+    "dev": "tsx server.ts",
+    "start": "tsx server.ts",
     "build": "vite build",
     "build:android": "vite build && cap sync android",
     "preview": "vite preview",
@@ -33,7 +34,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
-    "express": "^4.21.2",
+    "express": "^4.22.1",
     "firebase": "^12.10.0",
     "html5-qrcode": "^2.3.8",
     "jspdf": "^4.2.1",
