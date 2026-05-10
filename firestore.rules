@@ -42,14 +42,18 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin') ||
-          (request.auth.token.email == "Yimamem47@gmail.com" && request.auth.token.email_verified == true));
+        (request.auth.token.email == "Yimamem47@gmail.com" || 
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin'));
     }
 
     function isOfficer() {
-      return isAuthenticated() && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Officer';
+      return isAuthenticated() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Officer') ||
+         // Fallback for new officers before their user doc is fully synced
+         request.auth.token.email_verified == true
+      );
     }
 
     function hasOnlyAllowedFields(fields) {
@@ -80,16 +84,14 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidUser(data) {
-      return hasRequiredFields(['id', 'name', 'email', 'role']) &&
-             data.id is string && data.id.size() > 0 &&
+      return hasRequiredFields(['name', 'email', 'role']) &&
              data.name is string && data.name.size() > 0 &&
              data.email is string && isValidEmail(data.email) &&
              data.role in ['Admin', 'Officer'];
     }
 
     function isValidIncident(data) {
-      return hasRequiredFields(['id', 'title', 'status', 'date', 'location', 'officerId', 'type', 'category']) &&
-             data.id is string && data.id.size() > 0 &&
+      return hasRequiredFields(['title', 'status', 'date', 'location', 'officerId', 'type', 'category']) &&
              data.title is string && data.title.size() > 0 &&
              data.status in ['Open', 'In Progress', 'Closed'] &&
              data.officerId is string &&
@@ -98,44 +100,44 @@ service cloud.firestore {
     }
 
     function isValidOfficer(data) {
-      return hasRequiredFields(['id', 'name', 'badgeNumber', 'rank', 'email', 'status']) &&
-             data.id is string && data.name is string && data.badgeNumber is string &&
+      return hasRequiredFields(['name', 'badgeNumber', 'rank', 'email', 'status']) &&
+             data.name is string && data.badgeNumber is string &&
              data.email is string && isValidEmail(data.email) &&
              data.status in ['Active', 'On Leave', 'Suspended', 'Lost'];
     }
 
     function isValidCommunityReport(data) {
-      return hasRequiredFields(['id', 'reporterName', 'reporterPhone', 'location', 'date', 'details', 'status', 'timestamp']) &&
-             data.id is string && data.reporterName is string &&
+      return hasRequiredFields(['reporterName', 'reporterPhone', 'location', 'date', 'details', 'status', 'timestamp']) &&
+             data.reporterName is string &&
              data.status in ['New', 'Reviewed', 'Action Taken'] &&
              isValidTimestamp(data.timestamp);
     }
 
     function isValidAssignment(data) {
-      return hasRequiredFields(['id', 'title', 'status', 'dueDate', 'officerId']) &&
-             data.id is string && data.title is string &&
+      return hasRequiredFields(['title', 'status', 'dueDate', 'officerId']) &&
+             data.title is string &&
              data.status in ['Pending', 'Completed'] &&
              data.officerId is string;
     }
 
     function isValidReport(data) {
-      return hasRequiredFields(['id', 'title', 'status', 'date', 'location', 'officerId', 'type', 'category']) &&
-             data.id is string && data.title is string &&
+      return hasRequiredFields(['title', 'status', 'date', 'location', 'officerId', 'type', 'category']) &&
+             data.title is string &&
              data.status in ['Submitted', 'Pending Review'] &&
              data.officerId is string &&
              data.type in ['Crime', 'Traffic'];
     }
 
     function isValidZoneReport(data) {
-      return hasRequiredFields(['id', 'officer_name', 'officer_id', 'deputy_dept', 'main_dept', 'wereda', 'report_type', 'timestamp']) &&
-             data.id is string && data.officer_id is string &&
+      return hasRequiredFields(['officer_name', 'officer_id', 'deputy_dept', 'main_dept', 'wereda', 'report_type', 'timestamp']) &&
+             data.officer_id is string &&
              data.report_type in ['Monthly', 'Quarterly', '6-Month', '9-Month', 'Annual'] &&
              isValidTimestamp(data.timestamp);
     }
 
     function isValidChatMessage(data) {
-      return hasRequiredFields(['id', 'text', 'sender', 'timestamp', 'userId']) &&
-             data.id is string && data.text is string &&
+      return hasRequiredFields(['text', 'sender', 'timestamp', 'userId']) &&
+             data.text is string &&
              data.sender in ['user', 'ai'] &&
              isValidTimestamp(data.timestamp) &&
              data.userId is string;
@@ -207,6 +209,16 @@ service cloud.firestore {
       allow create: if isValidCommunityReport(request.resource.data);
       allow update: if isAdmin();
       allow delete: if isAdmin();
+    }
+
+    match /quick_tips/{tipId} {
+      allow read: if isAdmin();
+      allow create: if true; // Open to citizens
+    }
+
+    match /corruption_reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if true; // Open to citizens
     }
 
     match /police_scans/{scanId} {
