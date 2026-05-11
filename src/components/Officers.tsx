@@ -3,6 +3,7 @@ import { Users, Plus, Search, Trash2, Edit2, Mail, Shield, BadgeCheck, MapPin, P
 import { Officer } from '../types';
 import { motion } from 'motion/react';
 import { Language, translations } from '../lib/translations';
+import { dialPhone } from '../lib/utils';
 
 interface OfficersProps {
   officers: Officer[];
@@ -24,13 +25,15 @@ export function Officers({ officers, lang, onAdd, onUpdate, onDelete }: Officers
     station: '',
     phone: '',
     email: '',
-    status: 'Active'
+    status: 'Active',
+    photo: ''
   });
 
   const filteredOfficers = officers.filter(o => 
     (o.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (o.badgeNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (o.rank || '').toLowerCase().includes(searchTerm.toLowerCase())
+    (o.rank || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (o.status || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -65,7 +68,7 @@ export function Officers({ officers, lang, onAdd, onUpdate, onDelete }: Officers
       onAdd(newOfficer);
     }
     setIsModalOpen(false);
-    setNewOfficer({ name: '', rank: 'Officer', badgeNumber: '', station: '', phone: '', email: '', status: 'Active' });
+    setNewOfficer({ name: '', rank: 'Officer', badgeNumber: '', station: '', phone: '', email: '', status: 'Active', photo: '' });
   };
 
   const handleEdit = (officer: Officer) => {
@@ -77,7 +80,8 @@ export function Officers({ officers, lang, onAdd, onUpdate, onDelete }: Officers
       station: officer.station,
       phone: officer.phone,
       email: officer.email,
-      status: officer.status
+      status: officer.status,
+      photo: officer.photo || ''
     });
     setIsModalOpen(true);
   };
@@ -85,19 +89,19 @@ export function Officers({ officers, lang, onAdd, onUpdate, onDelete }: Officers
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingOfficer(null);
-    setNewOfficer({ name: '', rank: 'Officer', badgeNumber: '', station: '', phone: '', email: '', status: 'Active' });
+    setNewOfficer({ name: '', rank: 'Officer', badgeNumber: '', station: '', phone: '', email: '', status: 'Active', photo: '' });
   };
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t.officers || 'Officers'}</h1>
-          <p className="text-brand-text-secondary">Personnel directory for the West Gojjam Zone Police.</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t.officers}</h1>
+          <p className="text-brand-text-secondary">{t.directoryDesc}</p>
         </div>
         <button onClick={() => setIsModalOpen(true)} className="btn-primary">
           <Plus size={18} />
-          {t.addOfficer || 'Add Officer'}
+          {t.addOfficer}
         </button>
       </div>
 
@@ -122,22 +126,42 @@ export function Officers({ officers, lang, onAdd, onUpdate, onDelete }: Officers
             className="glass-card p-6 group border-t-4 border-brand-accent"
           >
             <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 rounded-2xl bg-brand-accent/10 border border-brand-accent/20 flex items-center justify-center">
-                <Shield size={24} className="text-brand-accent" />
+              <div className="relative">
+                <div className="w-16 h-16 rounded-2xl bg-brand-accent/10 border border-brand-accent/20 flex items-center justify-center overflow-hidden">
+                  {officer.photo ? (
+                    <img src={officer.photo} alt={officer.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <Shield size={32} className="text-brand-accent" />
+                  )}
+                </div>
+                <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-brand-card ${
+                  officer.status === 'Active' ? 'bg-emerald-500' : 
+                  officer.status === 'On Leave' ? 'bg-amber-500' : 
+                  'bg-rose-500'
+                }`} title={officer.status} />
               </div>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button 
-                  onClick={() => handleEdit(officer)}
-                  className="p-2 text-brand-text-secondary hover:text-brand-accent transition-colors"
-                >
-                  <Edit2 size={18} />
-                </button>
-                <button 
-                  onClick={() => onDelete(officer.id)}
-                  className="p-2 text-brand-text-secondary hover:text-rose-400 transition-colors"
-                >
-                  <Trash2 size={18} />
-                </button>
+              <div className="flex flex-col items-end gap-2">
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button 
+                    onClick={() => handleEdit(officer)}
+                    className="p-2 text-brand-text-secondary hover:text-brand-accent transition-colors"
+                  >
+                    <Edit2 size={18} />
+                  </button>
+                  <button 
+                    onClick={() => onDelete(officer.id)}
+                    className="p-2 text-brand-text-secondary hover:text-rose-400 transition-colors"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                  officer.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400' : 
+                  officer.status === 'On Leave' ? 'bg-amber-500/10 text-amber-400' : 
+                  'bg-rose-500/10 text-rose-400'
+                }`}>
+                  {(t.officerStatuses as any)[officer.status] || officer.status}
+                </span>
               </div>
             </div>
             <h3 className="text-lg font-bold mb-1">{officer.name}</h3>
@@ -147,16 +171,19 @@ export function Officers({ officers, lang, onAdd, onUpdate, onDelete }: Officers
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-brand-text-secondary text-sm">
                 <BadgeCheck size={14} className="text-brand-accent" />
-                <span>Badge: {officer.badgeNumber}</span>
+                <span>{t.badge}: {officer.badgeNumber}</span>
               </div>
               <div className="flex items-center gap-2 text-brand-text-secondary text-sm">
                 <MapPin size={14} className="text-brand-accent" />
-                <span>Station: {officer.station}</span>
+                <span>{t.station}: {officer.station}</span>
               </div>
-              <div className="flex items-center gap-2 text-brand-text-secondary text-sm">
+              <button 
+                onClick={() => dialPhone(officer.phone)}
+                className="flex items-center gap-2 text-brand-text-secondary text-sm hover:text-brand-accent transition-colors"
+              >
                 <Phone size={14} className="text-brand-accent" />
                 <span>{officer.phone}</span>
-              </div>
+              </button>
               <div className="flex items-center gap-2 text-brand-text-secondary text-sm">
                 <Mail size={14} className="text-brand-accent" />
                 <span>{officer.email}</span>
@@ -180,15 +207,27 @@ export function Officers({ officers, lang, onAdd, onUpdate, onDelete }: Officers
             <h2 className="text-2xl font-bold mb-6">{editingOfficer ? t.editProfile : (t.addOfficer || 'Add Officer')}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.officerName}</label>
-                  <input 
-                    required
-                    type="text" 
-                    className="input-field" 
-                    value={newOfficer.name}
-                    onChange={(e) => setNewOfficer({...newOfficer, name: e.target.value})}
-                  />
+                <div className="col-span-2 grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.officerName}</label>
+                    <input 
+                      required
+                      type="text" 
+                      className="input-field" 
+                      value={newOfficer.name}
+                      onChange={(e) => setNewOfficer({...newOfficer, name: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.photoUrl}</label>
+                    <input 
+                      type="text" 
+                      className="input-field" 
+                      placeholder="https://..."
+                      value={newOfficer.photo}
+                      onChange={(e) => setNewOfficer({...newOfficer, photo: e.target.value})}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.rank || 'Rank'}</label>
@@ -203,7 +242,7 @@ export function Officers({ officers, lang, onAdd, onUpdate, onDelete }: Officers
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-brand-text-secondary mb-2">Badge #</label>
+                  <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.badgeNumber}</label>
                   <input 
                     required
                     type="text" 
@@ -214,21 +253,21 @@ export function Officers({ officers, lang, onAdd, onUpdate, onDelete }: Officers
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-brand-text-secondary mb-2">Station</label>
+                <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.station}</label>
                 <select 
                   required
                   className="input-field"
                   value={newOfficer.station}
                   onChange={(e) => setNewOfficer({...newOfficer, station: e.target.value})}
                 >
-                  <option value="">Select Station</option>
+                  <option value="">{t.selectStation}</option>
                   {Object.entries(t.stations).map(([key, label]) => (
                     <option key={key} value={label as string}>{label as string}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-brand-text-secondary mb-2">Phone</label>
+                <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.phone}</label>
                 <input 
                   required
                   type="tel" 
@@ -238,7 +277,7 @@ export function Officers({ officers, lang, onAdd, onUpdate, onDelete }: Officers
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-brand-text-secondary mb-2">Email</label>
+                <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.email}</label>
                 <input 
                   required
                   type="email" 
@@ -246,6 +285,18 @@ export function Officers({ officers, lang, onAdd, onUpdate, onDelete }: Officers
                   value={newOfficer.email}
                   onChange={(e) => setNewOfficer({...newOfficer, email: e.target.value})}
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.officerStatus}</label>
+                <select 
+                  className="input-field"
+                  value={newOfficer.status}
+                  onChange={(e) => setNewOfficer({...newOfficer, status: e.target.value as any})}
+                >
+                  {Object.entries(t.officerStatuses).map(([key, label]) => (
+                    <option key={key} value={key}>{label as string}</option>
+                  ))}
+                </select>
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={handleCloseModal} className="btn-secondary flex-1">

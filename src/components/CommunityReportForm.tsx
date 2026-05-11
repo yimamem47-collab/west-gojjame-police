@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Send, CheckCircle, ChevronRight, ChevronLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Send, CheckCircle, ChevronRight, ChevronLeft, Paperclip, X as XIcon, Image as ImageIcon, FileText as FileIcon, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, translations } from '../lib/translations';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -17,14 +17,47 @@ export function CommunityReportForm({ lang, onBack }: CommunityReportFormProps) 
   const [isSuccess, setIsSuccess] = useState(false);
   const [step, setStep] = useState(1);
   
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step]);
+  
   const [report, setReport] = useState({
     reporterName: '',
     reporterPhone: '',
     reporterEmail: '',
     location: '',
     date: new Date().toISOString().split('T')[0],
-    details: ''
+    details: '',
+    files: [] as { name: string, type: string, data: string }[]
   });
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const fileList = Array.from(files);
+      fileList.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setReport(prev => ({
+            ...prev,
+            files: [...prev.files, { 
+              name: file.name, 
+              type: file.type, 
+              data: reader.result as string 
+            }].slice(0, 3)
+          }));
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setReport(prev => ({
+      ...prev,
+      files: prev.files.filter((_, i) => i !== index)
+    }));
+  };
 
   const handleNext = () => {
     if (step === 1) {
@@ -64,28 +97,54 @@ export function CommunityReportForm({ lang, onBack }: CommunityReportFormProps) 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, 'community_reports'), {
+      const uploadedFileUrls: string[] = [];
+
+      if (report.files.length > 0 && navigator.onLine) {
+        const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
+        const { storage } = await import('../firebase');
+        
+        for (const file of report.files) {
+          const fileRef = ref(storage, `community_reports/${Date.now()}_${file.name}`);
+          // Convert dataurl/base64 to blob/file
+          const response = await fetch(file.data);
+          const blob = await response.blob();
+          const snapshot = await uploadBytes(fileRef, blob);
+          const url = await getDownloadURL(snapshot.ref);
+          uploadedFileUrls.push(url);
+        }
+      }
+
+      const reportData = {
         ...report,
+        files: uploadedFileUrls,
         status: 'New',
         timestamp: serverTimestamp()
-      });
+      };
+
+      await addDoc(collection(db, 'community_reports'), reportData);
       
       // Send Telegram notification
-      const message = `🚨 <b>አዲስ የማህበረሰብ ሪፖርት / New Community Report</b>\n---------------------------\n<b>Name:</b> ${escapeHtml(report.reporterName)}\n<b>Phone:</b> ${escapeHtml(report.reporterPhone)}\n<b>Location:</b> ${escapeHtml(report.location)}\n<b>Date:</b> ${escapeHtml(report.date)}\n---------------------------\n<b>Details:</b>\n${escapeHtml(report.details)}`;
+      let filesString = uploadedFileUrls.length > 0 
+        ? `\n<b>Attachments (${uploadedFileUrls.length}):</b>\n${uploadedFileUrls.map((url, i) => `<a href="${url}">File ${i+1}</a>`).join(', ')}`
+        : "";
+        
+      const message = `🚨 <b>አዲስ የማህበረሰብ ሪፖርት / New Community Report</b>\n---------------------------\n<b>Name:</b> ${escapeHtml(report.reporterName)}\n<b>Phone:</b> ${escapeHtml(report.reporterPhone)}\n<b>Location:</b> ${escapeHtml(report.location)}\n<b>Date:</b> ${escapeHtml(report.date)}\n---------------------------\n<b>Details:</b>\n${escapeHtml(report.details)}${filesString}`;
       await sendTelegramMessage(message);
 
       // Send to Google Sheets
       const sheetURL = "https://script.google.com/macros/s/AKfycbw2Bkjrv9SbObSFs0xOlcONYKJKpsa_lqSu2to4PfIKlHoP8U5KVMj0DQYrkvkS_jYS/exec";
       
-      const reportData = {
+      const sheetData = {
         name: report.reporterName,
         phone: report.reporterPhone,
         email: report.reporterEmail || "",
-        message: report.details,
+        message: report.details + (uploadedFileUrls.length > 0 ? ` [Files: ${uploadedFileUrls.join(', ')}]` : ""),
         location: report.location,
         date: report.date,
-        status: 'New'
+        status: 'New Community Report'
       };
+      
+      console.log("Sending report to Google Sheets:", sheetData);
       
       // Send to Google Sheets in the background without blocking
       fetch(sheetURL, {
@@ -94,9 +153,9 @@ export function CommunityReportForm({ lang, onBack }: CommunityReportFormProps) 
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(reportData)
-      }).then(() => console.log("መረጃው ወደ ጎግል ሺት ተልኳል!"))
-        .catch(error => console.error("በሺቱ መላኪያ ላይ ስህተት አለ:", error));
+        body: JSON.stringify(sheetData)
+      }).then(() => console.log("Data successfully sent to Google Sheets (no-cors mode)"))
+        .catch(error => console.error("Error sending to Google Sheets:", error));
       
       setIsSuccess(true);
     } catch (error) {
@@ -138,7 +197,7 @@ export function CommunityReportForm({ lang, onBack }: CommunityReportFormProps) 
   }
 
   return (
-    <div className="min-h-screen bg-brand-bg py-12 px-4">
+    <div className="h-screen overflow-y-auto bg-brand-bg py-12 px-4 custom-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
       <div className="max-w-3xl mx-auto">
         <button 
           onClick={onBack}
@@ -257,6 +316,41 @@ export function CommunityReportForm({ lang, onBack }: CommunityReportFormProps) 
                       onChange={(e) => setReport({...report, date: e.target.value})}
                     />
                   </div>
+                  <div className="bg-brand-bg/50 p-4 rounded-xl border border-brand-border shadow-sm">
+                    <label className="block text-sm font-medium text-brand-text-secondary mb-2">{lang === 'am' ? 'ፋይል ያያይዙ (ምስል ወይም ፒዲኤፍ)' : 'Attach Files (Image or PDF)'}</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      {report.files.map((file, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-xl bg-brand-bg border border-brand-border flex items-center justify-center overflow-hidden group">
+                          {file.type.startsWith('image/') ? (
+                            <img src={file.data} alt="Upload" className="w-full h-full object-cover" />
+                          ) : (
+                            <FileIcon size={32} className="text-brand-accent" />
+                          )}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <button onClick={() => removeFile(idx)} className="p-2 bg-rose-500 rounded-full text-white">
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-1 text-[8px] text-white truncate text-center">
+                            {file.name}
+                          </div>
+                        </div>
+                      ))}
+                      {report.files.length < 3 && (
+                        <label className="aspect-square rounded-xl border-2 border-dashed border-brand-border flex flex-col items-center justify-center gap-2 hover:border-brand-accent hover:bg-brand-accent/5 transition-all cursor-pointer">
+                          <Paperclip size={24} className="text-brand-text-secondary" />
+                          <span className="text-[10px] font-bold uppercase text-brand-text-secondary">{lang === 'am' ? 'አክል' : 'Add File'}</span>
+                          <input 
+                            type="file" 
+                            accept="image/*,application/pdf" 
+                            multiple
+                            className="hidden" 
+                            onChange={handleFileUpload}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  </div>
                   <div className="flex gap-4">
                     <button onClick={handlePrev} className="flex-1 btn-secondary py-3 flex items-center justify-center gap-2">
                       <ChevronLeft size={18} /> {lang === 'am' ? 'ወደ ኋላ' : 'Back'}
@@ -297,6 +391,17 @@ export function CommunityReportForm({ lang, onBack }: CommunityReportFormProps) 
                     <div>
                       <span className="text-sm text-brand-text-secondary block">{lang === 'am' ? 'የሪፖርቱ ዝርዝር' : 'Report Details'}</span>
                       <p className="font-medium whitespace-pre-wrap mt-1">{report.details}</p>
+                    </div>
+                    <div className="pt-2 border-t border-brand-border">
+                      <span className="text-sm text-brand-text-secondary block mb-2">{lang === 'am' ? 'የተያያዙ ፋይሎች' : 'Attached Files'}</span>
+                      <div className="flex flex-wrap gap-2">
+                        {report.files.length > 0 ? report.files.map((f, i) => (
+                          <div key={i} className="px-3 py-1 bg-brand-accent/10 border border-brand-accent/20 rounded-full text-xs flex items-center gap-2">
+                            {f.type.startsWith('image/') ? <ImageIcon size={12} /> : <FileIcon size={12} />}
+                            <span className="truncate max-w-[150px]">{f.name}</span>
+                          </div>
+                        )) : <span className="text-xs text-brand-text-secondary italic">{lang === 'am' ? 'ምንም ፋይል አልተያያዘም' : 'No files attached'}</span>}
+                      </div>
                     </div>
                   </div>
 

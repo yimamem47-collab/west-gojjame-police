@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
   Shield, 
@@ -16,11 +16,14 @@ import {
   Bot,
   ArrowLeft,
   Facebook,
-  Send
+  Send,
+  Activity,
+  Car,
+  MapPin
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, translations } from '../lib/translations';
-import { APP_LOGO } from '../constants';
+import { onFirestoreStatusChange } from '../firebase';
 
 interface SidebarItemProps {
   key?: string;
@@ -53,47 +56,71 @@ interface LayoutProps {
   onBack: () => void;
   onLogout: () => void;
   userName: string;
+  userRole: string;
   lang: Language;
   setLang: (lang: Language) => void;
 }
 
-export function Layout({ children, activeTab, setActiveTab, onBack, onLogout, userName, lang, setLang }: LayoutProps) {
+export function Layout({ children, activeTab, setActiveTab, onBack, onLogout, userName, userRole, lang, setLang }: LayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const [isFirestoreConnected, setIsFirestoreConnected] = useState(true);
   const t = translations[lang];
 
+  useEffect(() => {
+    const unsubscribe = onFirestoreStatusChange((connected) => {
+      setIsFirestoreConnected(connected);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   const menuItems = [
+    { id: 'home-view', label: lang === 'am' ? 'መነሻ ገጽ' : 'Home Page', icon: Globe },
     { id: 'dashboard', label: t.dashboard, icon: LayoutDashboard },
-    { id: 'incidents', label: t.crime, icon: AlertTriangle },
-    { id: 'officers', label: t.officers || 'Officers', icon: Users },
+    { id: 'traffic-safety', label: lang === 'am' ? 'የትራፊክ ደህንነት' : 'Traffic Safety', icon: Car },
+    { id: 'map', label: lang === 'am' ? 'የክስተቶች ካርታ' : 'Incident Map', icon: MapPin },
+    { id: 'incidents', label: t.crime || 'Crime', icon: AlertTriangle },
+    ...(userRole === 'Admin' ? [{ id: 'officers', label: t.officers || 'Officers', icon: Users }] : []),
     { id: 'assignments', label: t.assignments || 'Assignments', icon: ClipboardList },
     { id: 'reports', label: t.reports || 'Reports', icon: FileText },
     { id: 'zone-reports', label: t.zoneReports.title || 'Zone Reports', icon: ClipboardList },
     { id: 'community-reports', label: lang === 'am' ? 'የማህበረሰብ ሪፖርቶች' : 'Community Reports', icon: Users },
     { id: 'contacts', label: t.contacts || 'Contacts', icon: Phone },
-    { id: 'info', label: t.info || 'Info', icon: Shield },
+    { id: 'info', label: t.publicServices || 'Public Services', icon: Shield },
     { id: 'ai-assistant', label: t.aiAssistant || 'AI Assistant', icon: Bot },
     { id: 'help', label: t.help || 'Help', icon: HelpCircle },
     { id: 'settings', label: t.settings || 'Settings', icon: Settings },
   ];
 
   return (
-    <div className="h-[100dvh] flex bg-brand-bg text-brand-text-primary overflow-hidden">
-      {/* Mobile Menu Button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50 flex gap-2">
-        <button 
-          onClick={() => setIsSidebarOpen(true)}
-          className="p-2 bg-brand-card border border-brand-border rounded-lg text-brand-text-primary shadow-lg"
-        >
-          <Menu size={24} />
-        </button>
-        {activeTab !== 'dashboard' && (
+    <div className="min-h-screen flex bg-brand-bg text-brand-text-primary">
+      {/* Mobile Menu Button - Safe Area Aware */}
+      <div 
+        className="lg:hidden fixed left-0 top-0 w-full z-50 flex items-center px-4 transition-all"
+        style={{ 
+          paddingTop: 'var(--ion-safe-area-top, 0px)',
+          height: 'calc(var(--ion-safe-area-top, 0px) + 4rem)'
+        }}
+      >
+        <div className="flex gap-2 items-center w-full">
+          <button 
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-3 bg-brand-card/90 backdrop-blur-md border border-brand-border rounded-xl text-brand-text-primary shadow-xl active:scale-95 transition-transform"
+          >
+            <Menu size={24} />
+          </button>
           <button 
             onClick={onBack}
-            className="p-2 bg-brand-card border border-brand-border rounded-lg text-brand-text-primary shadow-lg flex items-center gap-2"
+            className="p-3 bg-brand-card/90 backdrop-blur-md border border-brand-border rounded-xl text-brand-text-primary shadow-xl flex items-center gap-2 active:scale-95 transition-transform"
           >
             <ArrowLeft size={24} />
           </button>
-        )}
+          <div className="ml-auto w-10 h-10 bg-white rounded-full flex items-center justify-center p-0.5 border border-brand-accent/30 overflow-hidden shadow-inner">
+            <img src="/police_logo.png" alt="Logo" className="w-full h-full object-contain" />
+          </div>
+        </div>
       </div>
 
       {/* Sidebar Overlay */}
@@ -111,21 +138,19 @@ export function Layout({ children, activeTab, setActiveTab, onBack, onLogout, us
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:static inset-y-0 left-0 w-64 bg-brand-card border-r border-brand-border z-50 transition-transform duration-300
+        fixed lg:sticky lg:top-0 lg:h-screen inset-y-0 left-0 w-64 bg-brand-card border-r border-brand-border z-50 transition-transform duration-300
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="h-full flex flex-col p-6">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-brand-accent">
-                <img 
-                  src={APP_LOGO} 
-                  alt="Logo" 
-                  className="w-full h-full object-cover rounded-full"
-                  referrerPolicy="no-referrer"
-                />
+          <div className="flex items-center justify-between mb-8 pb-6 border-b border-brand-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center p-0.5 border border-brand-accent shadow-lg overflow-hidden">
+                <img src="/police_logo.png" alt="Logo" className="w-full h-full object-contain" />
               </div>
-              <span className="text-xl font-bold tracking-tight">West Gojjam Police</span>
+              <div className="flex flex-col">
+                <span className="text-sm font-black tracking-tighter text-white leading-none">WGZ POLICE</span>
+                <span className="text-[8px] font-bold text-brand-accent uppercase tracking-widest mt-0.5">DIGITAL DEP.</span>
+              </div>
             </div>
             <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-brand-text-secondary">
               <X size={24} />
@@ -148,6 +173,15 @@ export function Layout({ children, activeTab, setActiveTab, onBack, onLogout, us
           </nav>
 
           <div className="pt-6 border-t border-brand-border mt-auto space-y-4">
+            {/* Connection Status */}
+            <div className="flex items-center justify-between px-4 py-2 bg-brand-bg/50 rounded-xl border border-brand-border">
+              <div className="flex items-center gap-2">
+                <Activity size={14} className={isFirestoreConnected ? 'text-emerald-500' : 'text-rose-500'} />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-brand-text-secondary">System Status</span>
+              </div>
+              <div className={`w-2 h-2 rounded-full ${isFirestoreConnected ? 'bg-emerald-500' : 'bg-rose-500'} ${isFirestoreConnected ? 'animate-pulse' : ''}`} />
+            </div>
+
             {/* Language Switcher */}
             <div className="flex items-center gap-2 px-4 py-2 bg-brand-bg rounded-xl border border-brand-border">
               <Globe size={16} className="text-brand-accent" />
@@ -188,17 +222,33 @@ export function Layout({ children, activeTab, setActiveTab, onBack, onLogout, us
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col pt-20 lg:pt-8 relative z-0" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <div className="flex-1 p-4 lg:p-8 max-w-7xl mx-auto w-full">
-          {activeTab !== 'dashboard' && (
-            <button 
-              onClick={onBack}
-              className="hidden lg:flex items-center gap-2 text-brand-text-secondary hover:text-brand-text-primary mb-6 transition-colors"
-            >
-              <ArrowLeft size={20} />
-              <span>{lang === 'am' ? 'ተመለስ' : 'Back'}</span>
-            </button>
-          )}
+      <main 
+        id="main-scroll-container" 
+        className="flex-1 h-screen overflow-y-auto pt-24 lg:pt-8 pb-20 lg:pb-0 relative z-0 custom-scrollbar" 
+        style={{ 
+          WebkitOverflowScrolling: 'touch',
+          paddingTop: 'calc(var(--ion-safe-area-top, 0px) + 5rem)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)' 
+        }}
+      >
+        {!isFirestoreConnected && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            className="bg-rose-500 text-white py-2 px-4 text-center text-xs font-bold flex items-center justify-center gap-2 sticky top-0 z-30 shadow-lg"
+          >
+            <AlertTriangle size={14} />
+            {lang === 'am' ? 'ከሲስተሙ ጋር ግንኙነት ተቋርጧል - ዳታዎች ከመስመር ውጭ እየሰሩ ነው' : 'Disconnected from system - Operating in offline mode'}
+          </motion.div>
+        )}
+        <div className="p-4 lg:p-8 max-w-7xl mx-auto w-full">
+          <button 
+            onClick={onBack}
+            className="hidden lg:flex items-center gap-2 text-brand-text-secondary hover:text-brand-text-primary mb-6 transition-colors"
+          >
+            <ArrowLeft size={20} />
+            <span>{lang === 'am' ? 'ተመለስ' : 'Back'}</span>
+          </button>
           {children}
         </div>
         

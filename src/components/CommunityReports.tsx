@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Language, translations } from '../lib/translations';
 import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
+import { formatFirestoreTimestamp } from '../lib/utils';
 
 interface CommunityReportsProps {
   lang: Language;
@@ -32,22 +33,10 @@ export function CommunityReports({ lang }: CommunityReportsProps) {
       try {
         const reportsData = snapshot.docs.map(doc => {
           const data = doc.data();
-          let timestampStr = new Date().toISOString();
-          
-          if (data.timestamp) {
-            if (typeof data.timestamp.toDate === 'function') {
-              timestampStr = data.timestamp.toDate().toISOString();
-            } else if (typeof data.timestamp === 'string') {
-              timestampStr = data.timestamp;
-            } else if (data.timestamp.seconds) {
-              timestampStr = new Date(data.timestamp.seconds * 1000).toISOString();
-            }
-          }
-
           return {
             id: doc.id,
             ...data,
-            timestamp: timestampStr
+            timestamp: formatFirestoreTimestamp(data.timestamp)
           };
         }) as CommunityReport[];
         setReports(reportsData);
@@ -110,8 +99,10 @@ export function CommunityReports({ lang }: CommunityReportsProps) {
         message: newReport.details,
         location: newReport.location,
         date: newReport.date,
-        status: 'New'
+        status: 'New Community Report'
       };
+      
+      console.log("Sending report to Google Sheets from Dashboard:", reportData);
       
       // Send to Google Sheets in the background without blocking
       fetch(sheetURL, {
@@ -121,7 +112,8 @@ export function CommunityReports({ lang }: CommunityReportsProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(reportData)
-      }).catch(error => console.error("Error sending to Google Sheets:", error));
+      }).then(() => console.log("Data successfully sent to Google Sheets from Dashboard"))
+        .catch(error => console.error("Error sending to Google Sheets:", error));
 
       setIsModalOpen(false);
       setNewReport({

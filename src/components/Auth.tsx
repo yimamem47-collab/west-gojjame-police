@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { Shield, Mail, Lock, User, ArrowRight, ShieldCheck, Globe, AlertCircle, Loader2 } from 'lucide-react';
+import { Shield, Mail, Lock, User, ArrowRight, ShieldCheck, Globe, AlertCircle, Loader2, ArrowLeft, CheckCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Language, translations } from '../lib/translations';
 import { auth, googleProvider } from '../firebase';
-import { APP_LOGO } from '../constants';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   updateProfile,
-  signInWithPopup
+  signInWithPopup,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { sendTelegramMessage, escapeHtml } from '../services/telegramService';
 
@@ -18,9 +18,10 @@ interface AuthProps {
   onLanguageChange: (lang: Language) => void;
   onSuccess: (user: { name: string; email: string }) => void;
   onSwitch: () => void;
+  onBack: () => void;
 }
 
-export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: AuthProps) {
+export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch, onBack }: AuthProps) {
   const t = translations[lang];
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,11 +31,34 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
     password: '',
     badgeNumber: ''
   });
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSent, setResetSent] = useState(false);
 
   const isIframe = window.self !== window.top;
 
   const handleOpenInNewTab = () => {
     window.open(window.location.href, '_blank');
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      await sendPasswordResetEmail(auth, resetEmail);
+      setResetSent(true);
+    } catch (err: any) {
+      console.error('Reset error:', err);
+      let message = (t as any).auth.generalError;
+      if (err.code === 'auth/user-not-found') {
+        message = (t as any).auth.invalidEmail;
+      }
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,27 +89,37 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
       }
     } catch (err: any) {
       console.error('Auth error:', err);
-      let message = lang === 'am' ? 'ስህተት ተከስቷል! እባክዎ ቆይተው ይሞክሩ።' : 'An error occurred. Please try again.';
+      let message = (t as any).auth.generalError;
       
       if (err.code === 'auth/email-already-in-use') {
-        message = lang === 'am' ? 'ይህ ኢሜይል ቀድሞ ተመዝግቧል።' : 'This email is already registered.';
-      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-email') {
-        message = lang === 'am' ? 'የተሳሳተ ኢሜይል ወይም የይለፍ ቃል!' : 'Invalid email or password.';
+        message = (t as any).auth.emailInUse;
+      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        message = (t as any).auth.invalidCredentials;
+      } else if (err.code === 'auth/invalid-email') {
+        message = (t as any).auth.invalidEmail;
       } else if (err.code === 'auth/weak-password') {
-        message = lang === 'am' ? 'የይለፍ ቃል ቢያንስ 6 ፊደላት መሆን አለበት።' : 'Password should be at least 6 characters.';
+        message = (t as any).auth.weakPassword;
       } else if (err.code === 'auth/network-request-failed') {
-        message = lang === 'am' ? 'የኔትወርክ ችግር አጋጥሟል። እባክዎ ኢንተርኔትዎን፣ Adblocker ወይም VPN ያረጋግጡ። (በአዲስ ታብ መክፈት ሊረዳ ይችላል)' : 'Network error. Please check your internet, Adblocker, or VPN. (Opening in a new tab might help)';
+        message = (t as any).auth.networkError;
       } else if (err.code === 'auth/too-many-requests') {
-        message = lang === 'am' ? 'ብዙ ሙከራ ተደርጓል። እባክዎ ለጥቂት ደቂቃዎች ቆይተው ይሞክሩ።' : 'Too many attempts. Please try again later.';
+        message = (t as any).auth.tooManyRequests;
       } else if (err.code === 'auth/operation-not-allowed') {
-        message = lang === 'am' ? 'ይህ የመግቢያ ዘዴ አልተፈቀደም። እባክዎ በFirebase Console ውስጥ "Email/Password" መፍቀድዎን ያረጋግጡ።' : 'Email/Password sign-in is not enabled in Firebase Console.';
+        message = (t as any).auth.operationNotAllowed;
       } else if (err.code === 'auth/user-disabled') {
-        message = lang === 'am' ? 'ይህ አካውንት ታግዷል። እባክዎ አስተዳዳሪውን ያነጋግሩ።' : 'This account has been disabled.';
+        message = (t as any).auth.accountDisabled;
       } else if (err.code) {
         message += ` (${err.code})`;
       }
       
       setError(message);
+      
+      // Auto-reconnect attempt if network error
+      if (err.code === 'auth/network-request-failed') {
+        setTimeout(() => {
+          setError((t as any).auth.reconnecting);
+          handleReconnect();
+        }, 2000);
+      }
     } finally {
       setLoading(false);
     }
@@ -95,31 +129,67 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
     setLoading(true);
     setError(null);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      onSuccess({
-        name: result.user.displayName || 'Officer',
-        email: result.user.email || ''
-      });
+      // Check if we are in a native app context
+      const isNative = window.location.protocol === 'capacitor:' || window.location.protocol === 'http:';
+      
+      // Safety check for browser popup blocking
+      const popupTimeout = setTimeout(() => {
+        if (loading) {
+          setError(lang === 'am' ? 'Google መግቢያው ረጅም ጊዜ እየወሰደ ነው። እባክዎ ብቅ ባይ (Popup) እንዲፈቀድ ያረጋግጡ።' : 'Google Sign-in is taking too long. Please ensure popups are allowed for this site.');
+        }
+      }, 10000);
+
+      try {
+        if (isNative && !isIframe) {
+          setError(lang === 'am' ? 'በአፕሊኬሽኑ ውስጥ የGoogle መግቢያ ለጊዜው አይሰራም። እባክዎ በኢሜይል እና የይለፍ ቃል ይግቡ ወይም በብራውዘር ይክፈቱት።' : 'Google Sign-in is not supported directly in the app yet. Please use Email/Password or open in a browser.');
+          setLoading(false);
+          clearTimeout(popupTimeout);
+          return;
+        }
+
+        const result = await signInWithPopup(auth, googleProvider);
+        clearTimeout(popupTimeout);
+        onSuccess({
+          name: result.user.displayName || 'Officer',
+          email: result.user.email || ''
+        });
+      } catch (err: any) {
+        clearTimeout(popupTimeout);
+        throw err;
+      }
     } catch (err: any) {
       console.error('Google Auth error:', err);
       if (err.code === 'auth/popup-closed-by-user') {
-        setError(lang === 'am' ? 'የመግቢያው መስኮት ተዘግቷል። እባክዎ እንደገና ይሞክሩ።' : 'Sign-in popup closed. Please try again.');
+        setError((t as any).auth.popupClosed);
       } else if (err.code === 'auth/unauthorized-domain') {
-        setError(lang === 'am' ? 'ይህ ዌብሳይት በFirebase አልተፈቀደም። እባክዎ አስተዳዳሪውን ያነጋግሩ።' : 'This domain is not authorized in Firebase. Please contact support.');
+        setError((t as any).auth.unauthorizedDomain);
       } else if (err.code === 'auth/network-request-failed') {
-        setError(lang === 'am' ? 'የኔትወርክ ችግር አጋጥሟል። እባክዎ ኢንተርኔትዎን፣ Adblocker ወይም VPN ያረጋግጡ። (በአዲስ ታብ መክፈት ሊረዳ ይችላል)' : 'Network error. Please check your internet, Adblocker, or VPN. (Opening in a new tab might help)');
+        setError((t as any).auth.networkError);
       } else {
-        const amMsg = `በGoogle መግባት አልተቻለም። እባክዎ እንደገና ይሞክሩ።${err.code ? ` (${err.code})` : ''}`;
-        const enMsg = `Failed to sign in with Google. Please try again.${err.code ? ` (${err.code})` : ''}`;
-        setError(lang === 'am' ? amMsg : enMsg);
+        setError((t as any).auth.googleError + (err.code ? ` (${err.code})` : ''));
       }
     } finally {
       setLoading(false);
     }
   };
 
+  const handleReconnect = async () => {
+    const { forceReconnect } = await import('../firebase');
+    await forceReconnect();
+    setError(null);
+  };
+
   return (
     <div className="min-h-screen bg-[#002B5B] flex items-center justify-center p-4 relative overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
+      {/* Back Button */}
+      <button 
+        onClick={onBack}
+        className="absolute top-4 left-4 p-2 text-white/60 hover:text-white transition-colors flex items-center gap-2 z-50"
+      >
+        <ArrowLeft size={24} />
+        <span className="font-bold">{t.back}</span>
+      </button>
+
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#FFD700]/5 rounded-full blur-3xl" />
@@ -144,20 +214,15 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
           </div>
         </div>
 
-        <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-[150px] h-[150px] bg-[#002B5B] rounded-full mb-4 shadow-xl border-[3px] border-[#003366] overflow-hidden">
-              <img 
-                src={APP_LOGO} 
-                alt="የምዕራብ ጎጃም ዞን ፖሊስ አርማ" 
-                className="w-full h-full object-cover rounded-full"
-                referrerPolicy="no-referrer"
-              />
+        <div className="text-center mb-8 flex flex-col items-center">
+            <div className="w-20 h-20 bg-[#FFD700]/10 rounded-full flex items-center justify-center mb-4 border-2 border-[#FFD700]/20 shadow-lg">
+              <Shield className="text-[#FFD700]" size={40} />
             </div>
           <h1 className="text-2xl font-bold tracking-tight mb-1 text-white">
-            የምዕራብ ጎጃም ዞን ፖሊስ መተግበሪያ
+            {t.appName}
           </h1>
           <p className="text-[#FFD700] font-bold text-lg mb-4 italic">
-            "በጀግንነት መጠበቅ በሰባዊነት ማገልገል"
+            "{t.motto}"
           </p>
           <h2 className="text-lg font-medium text-[#FFD700] mb-2">
             {type === 'login' ? t.loginTitle : t.signupTitle}
@@ -166,23 +231,19 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
           {isIframe && (
             <div className="mb-4 p-3 bg-brand-accent/10 border border-brand-accent/20 rounded-xl text-xs text-brand-accent flex flex-col items-center gap-2">
               <p className="text-center">
-                {lang === 'am' 
-                  ? 'በስልክዎ ላይ ለመግባት ከተቸገሩ፣ እባክዎ መተግበሪያውን በአዲስ ታብ (New Tab) ይክፈቱት።' 
-                  : 'If you have trouble signing in on mobile, please open the app in a new tab.'}
+                {t.iframeMobileNotice}
               </p>
               <button 
                 onClick={handleOpenInNewTab}
                 className="px-3 py-1 bg-brand-accent text-brand-bg rounded-lg font-bold hover:bg-brand-accent/90 transition-all"
               >
-                {lang === 'am' ? 'በአዲስ ታብ ክፈት' : 'Open in New Tab'}
+                {t.openInNewTab}
               </button>
             </div>
           )}
 
           <p className="text-white/60 text-sm">
-            {type === 'login' 
-              ? 'Access the West Gojjam Zone Police system.' 
-              : 'Register your officer account for the department.'}
+            {type === 'login' ? t.loginDesc : t.signupDesc}
           </p>
         </div>
 
@@ -197,32 +258,86 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
               {error}
             </div>
           )}
-          <form onSubmit={handleSubmit} className="space-y-5">
+
+          {showForgotPassword ? (
+            <motion.form
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              onSubmit={handleForgotPassword}
+              className="space-y-6"
+            >
+              <div className="text-center mb-6">
+                <ShieldCheck className="w-12 h-12 text-[#FFD700] mx-auto mb-2" />
+                <h3 className="text-xl font-bold text-white">{(t as any).auth.forgotPassword}</h3>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-white/70 ml-1">
+                  {t.officialEmail}
+                </label>
+                <div className="relative group">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-[#FFD700] transition-colors" />
+                  <input
+                    type="email"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50 transition-all h-12"
+                    placeholder="email@wgpolice.gov.et"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              {resetSent ? (
+                <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-3 text-green-400">
+                  <CheckCircle size={20} />
+                  <p className="text-sm">{(t as any).auth.resetSent}</p>
+                </div>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-[#FFD700] text-[#002B5B] font-bold py-3 rounded-xl hover:bg-[#FFD700]/90 transition-all flex items-center justify-center gap-2 h-12 shadow-lg shadow-[#FFD700]/20 disabled:opacity-50"
+                >
+                  {loading ? <Loader2 size={20} className="animate-spin" /> : (t as any).auth.resetPassword}
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(false)}
+                className="w-full text-center text-sm text-white/60 hover:text-white transition-colors"
+              >
+                {t.back}
+              </button>
+            </motion.form>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-5">
             {type === 'signup' && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-white/70 mb-2">Full Name</label>
+                  <label className="block text-sm font-medium text-white/70 mb-2">{t.fullName}</label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={18} />
                     <input
                       required
                       type="text"
                       className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50 transition-all"
-                      placeholder="Enter your full name"
+                      placeholder={t.fullNamePlaceholder || "Enter your full name"}
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/70 mb-2">Badge Number</label>
+                  <label className="block text-sm font-medium text-white/70 mb-2">{t.badgeNumber}</label>
                   <div className="relative">
                     <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={18} />
                     <input
                       required
                       type="text"
                       className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50 transition-all"
-                      placeholder="WG-XXXX"
+                      placeholder={t.badgePlaceholder}
                       value={formData.badgeNumber}
                       onChange={(e) => setFormData({ ...formData, badgeNumber: e.target.value })}
                     />
@@ -231,21 +346,21 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
               </>
             )}
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-2">Official Email</label>
+              <label className="block text-sm font-medium text-white/70 mb-2">{t.officialEmail}</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={18} />
                 <input
                   required
                   type="email"
                   className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50 transition-all"
-                  placeholder="name@wgpolice.gov.et"
+                  placeholder={t.emailPlaceholder}
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-2">Password</label>
+              <label className="block text-sm font-medium text-white/70 mb-2">{t.password}</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={18} />
                 <input
@@ -273,14 +388,27 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
                 </>
               )}
             </button>
+
+            {type === 'login' && (
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-xs text-[#FFD700] hover:text-[#FFD700]/80 transition-colors font-medium border-b border-transparent hover:border-[#FFD700]"
+                >
+                  {(t as any).auth.forgotPassword}
+                </button>
+              </div>
+            )}
           </form>
+        )}
 
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-white/10"></div>
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-[#002B5B] px-2 text-white/40">Or continue with</span>
+              <span className="bg-[#002B5B] px-2 text-white/40">{t.orContinueWith}</span>
             </div>
           </div>
 
@@ -307,24 +435,24 @@ export function Auth({ type, lang, onLanguageChange, onSuccess, onSwitch }: Auth
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Google
+            {t.signInWithGoogle}
           </button>
 
           <div className="mt-8 pt-6 border-t border-white/10 text-center">
             <p className="text-white/60 text-sm">
-              {type === 'login' ? "Don't have an account?" : "Already have an account?"}
+              {type === 'login' ? t.dontHaveAccount : t.alreadyHaveAccount}
               <button
                 onClick={onSwitch}
                 className="ml-2 text-[#FFD700] font-bold hover:underline"
               >
-                {type === 'login' ? 'Register here' : 'Sign in here'}
+                {type === 'login' ? t.registerHere : t.signInHere}
               </button>
             </p>
           </div>
         </motion.div>
 
         <p className="mt-8 text-center text-xs text-white/40">
-          Authorized personnel only. All access is monitored and logged.
+          {t.authorizedPersonnelOnly}
         </p>
       </div>
     </div>

@@ -47,6 +47,11 @@ export class ErrorBoundary extends React.Component<Props, State> {
         // Not a JSON error
       }
 
+      const isNetworkError = errorMessage.includes('offline') || 
+                             errorMessage.includes('Could not reach Cloud Firestore') ||
+                             errorMessage.includes('network') ||
+                             errorMessage.includes('Internet connection');
+
       return (
         <div className="min-h-screen bg-[#002B5B] flex items-center justify-center p-4">
           <motion.div 
@@ -54,16 +59,23 @@ export class ErrorBoundary extends React.Component<Props, State> {
             animate={{ opacity: 1, scale: 1 }}
             className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl max-w-md w-full text-center"
           >
-            <div className="w-20 h-20 bg-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-500/30">
-              <AlertCircle size={40} className="text-rose-400" />
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border ${isNetworkError ? 'bg-amber-500/20 border-amber-500/30' : 'bg-rose-500/20 border-rose-500/30'}`}>
+              <AlertCircle size={40} className={isNetworkError ? 'text-amber-400' : 'text-rose-400'} />
             </div>
             
             <h1 className="text-2xl font-bold text-white mb-4">
-              {isAm ? 'ይቅርታ! ስህተት ተከስቷል።' : 'Oops! Something went wrong.'}
+              {isNetworkError 
+                ? (isAm ? 'የግንኙነት ችግር ተከስቷል' : 'Connection Problem')
+                : (isAm ? 'ይቅርታ! ስህተት ተከስቷል።' : 'Oops! Something went wrong.')}
             </h1>
             
             <div className="bg-black/20 rounded-xl p-4 mb-8 text-left">
-              <p className="text-rose-200 text-sm font-mono break-all">
+              <p className="text-white/80 text-sm mb-2">
+                {isNetworkError 
+                  ? (isAm ? 'ዳታቤዙን ማግኘት አልተቻለም። እባክዎ ኢንተርኔትዎን ያረጋግጡ ወይም Adblocker ካለዎት ያጥፉት።' : 'Could not reach the database. Please check your internet connection or disable any Adblockers (like Brave Shields or uBlock Origin).')
+                  : (isAm ? 'የተከሰተው ስህተት ዝርዝር፦' : 'Error details:')}
+              </p>
+              <p className="text-rose-200 text-xs font-mono break-all opacity-60">
                 {isFirestoreError 
                   ? (isAm ? `የዳታቤዝ ስህተት (${firestoreInfo.operationType}): ${firestoreInfo.error}` : `Database Error (${firestoreInfo.operationType}): ${firestoreInfo.error}`)
                   : errorMessage || (isAm ? 'ያልታወቀ ስህተት ተከስቷል።' : 'An unexpected error occurred.')}

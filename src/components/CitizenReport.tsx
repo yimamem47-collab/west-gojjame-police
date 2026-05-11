@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Shield, MapPin, Calendar, Clock, FileText, Send, X, CheckCircle, Camera, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, translations } from '../lib/translations';
@@ -14,6 +14,13 @@ interface CitizenReportProps {
 export function CitizenReport({ type, lang, onClose, onSubmit }: CitizenReportProps) {
   const t = translations[lang];
   const [step, setStep] = useState<'form' | 'success'>('form');
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo(0, 0);
+    }
+  }, [step]);
   const [formData, setFormData] = useState({
     title: '',
     location: '',
@@ -22,26 +29,37 @@ export function CitizenReport({ type, lang, onClose, onSubmit }: CitizenReportPr
     description: '',
     category: 'other',
     filingStation: '',
-    photos: [] as string[]
+    photos: [] as string[],
+    plateNumber: '',
+    accidentType: (t as any).trafficSafetyModule?.options.accidentTypes[0] || '',
+    vehicleType: (t as any).trafficSafetyModule?.options.vehicleTypes[0] || ''
   });
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const ts = (t as any).trafficSafetyModule;
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      const newPhotos: string[] = [];
       const fileList = Array.from(files);
       fileList.forEach(file => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          newPhotos.push(reader.result as string);
-          if (newPhotos.length === fileList.length) {
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
             setFormData(prev => ({
               ...prev,
-              photos: [...prev.photos, ...newPhotos].slice(0, 3) // Limit to 3
+              photos: [...prev.photos, reader.result as string].slice(0, 3)
             }));
-          }
-        };
-        reader.readAsDataURL(file as Blob);
+          };
+          reader.readAsDataURL(file);
+        } else if (file.type === 'application/pdf') {
+          // For PDF, we just note it was attached in this simple version
+          // Ideally we'd upload to Storage later, but for now we'll store notice in description
+          setFormData(prev => ({
+            ...prev,
+            description: prev.description + `\n[Attached PDF: ${file.name}]`
+          }));
+          alert(lang === 'am' ? `ፒዲኤፍ ተያይዟል: ${file.name}` : `PDF attached: ${file.name}`);
+        }
       });
     }
   };
@@ -57,14 +75,29 @@ export function CitizenReport({ type, lang, onClose, onSubmit }: CitizenReportPr
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
+    
+    const finalReport: any = {
       ...formData,
       type,
       status: 'Open',
-      officerId: auth.currentUser?.uid || 'citizen', // Mark as citizen report
+      officerId: auth.currentUser?.uid || 'citizen',
       recordingOfficerName: auth.currentUser?.displayName || 'Citizen',
       recordingOfficerRank: 'citizen'
-    });
+    };
+
+    if (type === 'Traffic') {
+      finalReport.trafficDetails = {
+        plateNumber: formData.plateNumber,
+        accidentType: formData.accidentType,
+        vehicleType: formData.vehicleType
+      };
+      // Optional: remove redundant fields from root
+      delete finalReport.plateNumber;
+      delete finalReport.accidentType;
+      delete finalReport.vehicleType;
+    }
+
+    onSubmit(finalReport);
     setStep('success');
     setTimeout(() => {
       onClose();
@@ -74,6 +107,7 @@ export function CitizenReport({ type, lang, onClose, onSubmit }: CitizenReportPr
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <motion.div 
+        ref={scrollRef}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="glass-card w-full max-w-2xl max-h-[90vh] overflow-y-auto"
@@ -105,14 +139,14 @@ export function CitizenReport({ type, lang, onClose, onSubmit }: CitizenReportPr
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-brand-text-secondary mb-2">Incident Title</label>
+                    <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.incidentTitle}</label>
                     <div className="relative">
                       <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-text-secondary" size={18} />
                       <input 
                         required
                         type="text" 
                         className="input-field pl-10" 
-                        placeholder="Brief title of the incident"
+                        placeholder={type === 'Traffic' ? (ts?.accidentReport || 'Accident Report') : 'Brief title of the incident'}
                         value={formData.title}
                         onChange={(e) => setFormData({...formData, title: e.target.value})}
                       />
@@ -130,6 +164,46 @@ export function CitizenReport({ type, lang, onClose, onSubmit }: CitizenReportPr
                       ))}
                     </select>
                   </div>
+
+                  {type === 'Traffic' && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-brand-text-secondary mb-2">{ts?.fields?.plateNumber || 'Plate Number'}</label>
+                        <input 
+                          type="text" 
+                          className="input-field" 
+                          placeholder="e.g. AA 12345"
+                          value={formData.plateNumber}
+                          onChange={(e) => setFormData({...formData, plateNumber: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-brand-text-secondary mb-2">{ts?.fields?.accidentType || 'Accident Type'}</label>
+                        <select 
+                          className="input-field"
+                          value={formData.accidentType}
+                          onChange={(e) => setFormData({...formData, accidentType: e.target.value})}
+                        >
+                          {ts?.options?.accidentTypes.map((opt: string) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-brand-text-secondary mb-2">{ts?.fields?.vehicleType || 'Vehicle Type'}</label>
+                        <select 
+                          className="input-field"
+                          value={formData.vehicleType}
+                          onChange={(e) => setFormData({...formData, vehicleType: e.target.value})}
+                        >
+                          {ts?.options?.vehicleTypes.map((opt: string) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.incidentLocation}</label>
                     <div className="relative">
@@ -160,7 +234,7 @@ export function CitizenReport({ type, lang, onClose, onSubmit }: CitizenReportPr
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-brand-text-secondary mb-2">Date</label>
+                      <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.date}</label>
                       <div className="relative">
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-text-secondary" size={18} />
                         <input 
@@ -173,7 +247,7 @@ export function CitizenReport({ type, lang, onClose, onSubmit }: CitizenReportPr
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-brand-text-secondary mb-2">Time</label>
+                      <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.time}</label>
                       <div className="relative">
                         <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-text-secondary" size={18} />
                         <input 
@@ -201,9 +275,8 @@ export function CitizenReport({ type, lang, onClose, onSubmit }: CitizenReportPr
                   />
                 </div>
 
-                {/* Photo Upload Section */}
                 <div>
-                  <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.attachPhotos || 'Attach Photos'} (Max 3)</label>
+                  <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.attachFiles || 'Attach Photos & Documents'} (Max 3)</label>
                   <div className="grid grid-cols-4 gap-4">
                     {formData.photos.map((photo, index) => (
                       <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-brand-border group">
@@ -219,15 +292,14 @@ export function CitizenReport({ type, lang, onClose, onSubmit }: CitizenReportPr
                     ))}
                     {formData.photos.length < 3 && (
                       <label className="aspect-square rounded-xl border-2 border-dashed border-brand-border flex flex-col items-center justify-center gap-2 hover:border-brand-accent hover:bg-brand-accent/5 transition-all cursor-pointer">
-                        <Camera size={24} className="text-brand-text-secondary" />
-                        <span className="text-[10px] text-brand-text-secondary font-bold uppercase tracking-widest">Add Photo</span>
+                        <ImageIcon size={24} className="text-brand-text-secondary" />
+                        <span className="text-[10px] text-brand-text-secondary font-bold uppercase tracking-widest text-center">{lang === 'am' ? 'ፋይል ያክሉ' : 'Add File'}</span>
                         <input 
                           type="file" 
-                          accept="image/*" 
-                          capture="environment"
+                          accept="image/*,application/pdf" 
                           multiple
                           className="hidden" 
-                          onChange={handlePhotoUpload}
+                          onChange={handleFileUpload}
                         />
                       </label>
                     )}
@@ -242,7 +314,7 @@ export function CitizenReport({ type, lang, onClose, onSubmit }: CitizenReportPr
 
                 <div className="flex gap-4">
                   <button type="button" onClick={onClose} className="flex-1 btn-secondary">
-                    {t.cancel || 'Cancel'}
+                    {t.cancel}
                   </button>
                   <button type="submit" className="flex-1 btn-primary">
                     <Send size={18} />

@@ -1,8 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
-import { Camera, X, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { BarcodeScanner, BarcodeFormat } from '@capacitor-mlkit/barcode-scanning';
+import { Camera as CameraIcon, X, CheckCircle, AlertCircle, RefreshCw, Send, FileSearch, QrCode } from 'lucide-react';
 import { Language, translations } from '../lib/translations';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
+import { db, auth } from '../firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { Capacitor } from '@capacitor/core';
+import { analyzeImage } from '../services/geminiService';
 
 interface ScannerProps {
   lang: Language;
@@ -14,78 +18,129 @@ const TELEGRAM_CHAT_ID = "1452664718";
 
 export function Scanner({ lang, onClose }: ScannerProps) {
   const [scannedData, setScannedData] = useState<string | null>(null);
-  const [status, setStatus] = useState<'idle' | 'scanning' | 'sending' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'scanning' | 'analyzing' | 'sending' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [isNative] = useState(Capacitor.isNativePlatform());
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const t = translations[lang];
 
-  useEffect(() => {
-    let html5QrCode: Html5Qrcode | null = null;
-
-    const startScanner = async () => {
-      try {
-        html5QrCode = new Html5Qrcode("reader");
-        setStatus('scanning');
-        
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 }
-          },
-          (decodedText) => {
-            // Stop scanner on success
-            if (html5QrCode && html5QrCode.isScanning) {
-              html5QrCode.stop().then(() => {
-                setScannedData(decodedText);
-                sendToTelegram(decodedText);
-              }).catch(err => console.error("Failed to stop scanner", err));
-            }
-          },
-          (errorMessage) => {
-            // Ignore normal scanning errors
-          }
-        );
-      } catch (err) {
-        console.error("Scanner error:", err);
-        setStatus('error');
-        setErrorMessage(lang === 'am' ? 'ካሜራ አልተገኘም! እባክዎ ለብራውዘርዎ የካሜራ ፍቃድ ይስጡ።' : 'Camera not found! Please grant camera permissions.');
-      }
-    };
-
-    startScanner();
-
-    return () => {
-      if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop().catch(err => console.error("Failed to stop scanner on unmount", err));
-      }
-    };
-  }, [lang]);
-
-  const sendToTelegram = async (text: string) => {
-    setStatus('sending');
-    
-    if ('vibrate' in navigator) {
-      navigator.vibrate(200);
+  const startScanner = async () => {
+    if (!isNative) {
+      // For web, we trigger the file input (camera)
+      fileInputRef.current?.click();
+      return;
     }
 
-    const message = `🚨 አዲስ የስካን መረጃ 🚨\n\n📌 መረጃ: ${text}\n👤 መርማሪ: ዋና ሳጅን መንገሻ ይማም አበራ`;
+    try {
+      const { camera } = await BarcodeScanner.checkPermissions();
+      if (camera !== 'granted') {
+        const { camera: newStatus } = await BarcodeScanner.requestPermissions();
+        if (newStatus !== 'granted') {
+          setStatus('error');
+          setErrorMessage(lang === 'am' ? 'የካሜራ ፍቃድ አልተሰጠም።' : 'Camera permission not granted.');
+          return;
+        }
+      }
+
+      setStatus('scanning');
+      document.querySelector('body')?.classList.add('barcode-scanner-active');
+      document.querySelector('html')?.classList.add('barcode-scanner-active');
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const { barcodes } = await BarcodeScanner.scan({
+        formats: [BarcodeFormat.QrCode, BarcodeFormat.Code128, BarcodeFormat.Ean13]
+      });
+
+      stopScanner();
+
+      if (barcodes.length > 0) {
+        const decodedText = barcodes[0].displayValue;
+        setScannedData(decodedText);
+        handleScanSuccess(decodedText);
+      }
+    } catch (err) {
+      console.error("Scanner error:", err);
+      setStatus('error');
+      setErrorMessage(lang === 'am' ? 'ስካነር ስህተት! እባክዎ እንደገና ይሞክሩ።' : 'Scanner error! Please try again.');
+      stopScanner();
+    }
+  };
+
+  const handleFileCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setStatus('analyzing');
+    
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        
+        // Use Gemini to analyze the image
+        const prompt = lang === 'am' 
+          ? "በዚህ ፎቶ ላይ ያለውን መረጃ (መታወቂያ ወይም QR ኮድ) አንብብ። ዋናውን መረጃ ብቻ በአጭሩ ጽፈህ መልስ።"
+          : "Analyze this image and extract any information from an ID card or QR code. Return only the extracted text clearly.";
+        
+        const extractedText = await analyzeImage(base64, prompt);
+        
+        if (extractedText) {
+          setScannedData(extractedText);
+          handleScanSuccess(extractedText);
+        } else {
+          setStatus('error');
+          setErrorMessage(lang === 'am' ? 'መረጃውን ማንበብ አልተቻለም። እባክዎ ጥራት ያለው ፎቶ ያንሱ።' : 'Could not read information. Please take a clearer photo.');
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      setStatus('error');
+      setErrorMessage(lang === 'am' ? 'ስህተት ተከስቷል። እባክዎ እንደገና ይሞክሩ።' : 'Error occurred. Please try again.');
+    }
+  };
+
+  const stopScanner = () => {
+    document.querySelector('body')?.classList.remove('barcode-scanner-active');
+    document.querySelector('html')?.classList.remove('barcode-scanner-active');
+    if (status === 'scanning') setStatus('idle');
+  };
+
+  useEffect(() => {
+    return () => {
+      stopScanner();
+    };
+  }, []);
+
+  const handleScanSuccess = async (data: string) => {
+    setStatus('sending');
+    
+    try {
+      if (auth.currentUser) {
+        await addDoc(collection(db, 'police_scans'), {
+          data: data,
+          officerId: auth.currentUser.uid,
+          officerName: auth.currentUser.displayName || 'Officer',
+          timestamp: serverTimestamp()
+        });
+      }
+    } catch (error) {
+      console.error("Firestore error:", error);
+    }
+
+    const officerName = auth.currentUser?.displayName || 'Unknown Officer';
+    const message = `🚨 አዲስ የስካን መረጃ 🚨\n\n📌 መረጃ: ${data}\n👤 መርማሪ: ${officerName}`;
     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
 
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          chat_id: TELEGRAM_CHAT_ID,
-          text: message
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: message })
       });
 
-      const data = await response.json();
-      
-      if (data.ok) {
+      const result = await response.json();
+      if (result.ok) {
         setStatus('success');
       } else {
         setStatus('error');
@@ -97,85 +152,108 @@ export function Scanner({ lang, onClose }: ScannerProps) {
     }
   };
 
-  const resetScanner = () => {
-    setScannedData(null);
-    setStatus('idle');
-    setErrorMessage('');
-    // The useEffect will not re-run, so we need to reload the component or manage state better.
-    // For simplicity, we can just close and let the user reopen, or we can force a re-render.
-    onClose();
-  };
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl flex flex-col"
-      >
-        <div className="bg-brand-primary text-white p-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Camera size={20} />
-            <h2 className="font-bold text-lg">{lang === 'am' ? 'ባርኮድ ስካነር' : 'Barcode Scanner'}</h2>
+    <div className={`fixed inset-0 z-[200] ${status === 'scanning' ? 'bg-transparent' : 'bg-brand-bg/95 backdrop-blur-md'} flex flex-col`}>
+      <input 
+        type="file" 
+        accept="image/*" 
+        capture="environment" 
+        ref={fileInputRef} 
+        className="hidden" 
+        onChange={handleFileCapture}
+      />
+
+      {status !== 'scanning' && (
+        <div className="bg-brand-card p-4 border-b border-brand-border flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-brand-accent/10 rounded-lg">
+              <CameraIcon className="text-brand-accent" size={24} />
+            </div>
+            <h2 className="text-xl font-bold">{lang === 'am' ? 'የፖሊስ ዲጂታል ስካነር' : 'Police Digital Scanner'}</h2>
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-white/20 rounded-full transition-colors">
+          <button onClick={onClose} className="p-2 hover:bg-brand-accent/10 rounded-full transition-colors">
             <X size={24} />
           </button>
         </div>
+      )}
 
-        <div className="p-6 flex flex-col items-center flex-grow">
-          {status === 'scanning' && (
-            <div className="w-full mb-4">
-              <div id="reader" className="w-full rounded-xl overflow-hidden border-2 border-brand-primary bg-black"></div>
-              <p className="text-center text-sm text-gray-500 mt-4">
-                {lang === 'am' ? 'ባርኮዱን ወይም QR ኮዱን ወደ ካሜራው ያቅርቡ' : 'Point the camera at the barcode or QR code'}
+      <div className="flex-1 flex flex-col items-center justify-center p-6">
+        {status === 'scanning' ? (
+          <div className="relative flex flex-col items-center">
+            <div className="w-64 h-64 border-2 border-brand-accent rounded-3xl animate-pulse relative">
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-brand-accent -mt-1 -ml-1 rounded-tl-xl"></div>
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-brand-accent -mt-1 -mr-1 rounded-tr-xl"></div>
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-brand-accent -mb-1 -ml-1 rounded-bl-xl"></div>
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-brand-accent -mb-1 -mr-1 rounded-br-xl"></div>
+            </div>
+            <button 
+              onClick={stopScanner}
+              className="mt-12 bg-white/10 text-white border border-white/20 px-8 py-3 rounded-full backdrop-blur-md"
+            >
+              {lang === 'am' ? 'ሰርዝ' : 'Cancel'}
+            </button>
+          </div>
+        ) : status === 'analyzing' || status === 'sending' ? (
+          <div className="text-center space-y-4">
+            <RefreshCw className="animate-spin text-brand-accent mx-auto" size={48} />
+            <p className="text-lg font-medium">
+              {status === 'analyzing' 
+                ? (lang === 'am' ? 'መረጃው በ AI በመተንተን ላይ ነው...' : 'AI Analyzing Data...')
+                : (lang === 'am' ? 'በመላክ ላይ...' : 'Sending Data...')}
+            </p>
+          </div>
+        ) : status === 'success' ? (
+          <div className="text-center space-y-6 max-w-sm">
+            <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border-2 border-emerald-500/30">
+              <CheckCircle size={40} className="text-emerald-500" />
+            </div>
+            <h3 className="text-2xl font-bold text-emerald-500">{lang === 'am' ? 'በተሳካ ሁኔታ ተልኳል!' : 'Sent Successfully!'}</h3>
+            <div className="bg-brand-card p-4 rounded-xl border border-brand-border break-all font-mono text-xs max-h-40 overflow-y-auto">
+              {scannedData}
+            </div>
+            <button onClick={onClose} className="btn-primary w-full py-4 text-brand-bg font-bold">
+              {lang === 'am' ? 'ጨርስ' : 'Finish'}
+            </button>
+          </div>
+        ) : status === 'error' ? (
+          <div className="text-center space-y-6 max-w-sm">
+            <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto border-2 border-rose-500/30">
+              <AlertCircle size={40} className="text-rose-500" />
+            </div>
+            <h3 className="text-xl font-bold">{lang === 'am' ? 'ስህተት አጋጥሟል' : 'Error Occurred'}</h3>
+            <p className="text-brand-text-secondary">{errorMessage}</p>
+            <button onClick={() => { setStatus('idle'); setErrorMessage(''); }} className="btn-primary w-full py-4 uppercase tracking-widest font-bold">
+              {lang === 'am' ? 'እንደገና ሞክር' : 'Try Again'}
+            </button>
+          </div>
+        ) : (
+          <div className="text-center space-y-8 max-w-md">
+            <div className="flex justify-center gap-6">
+              <div className="w-24 h-24 bg-brand-accent/10 rounded-2xl flex items-center justify-center border-2 border-brand-accent/20">
+                <FileSearch size={40} className="text-brand-accent" />
+              </div>
+              <div className="w-24 h-24 bg-blue-500/10 rounded-2xl flex items-center justify-center border-2 border-blue-500/20">
+                <QrCode size={40} className="text-blue-400" />
+              </div>
+            </div>
+            <div>
+              <h3 className="text-2xl font-black mb-3">{lang === 'am' ? 'ሁለገብ ስካነር' : 'Universal Scanner'}</h3>
+              <p className="text-brand-text-secondary leading-relaxed font-medium">
+                {lang === 'am' 
+                  ? 'መታወቂያ ካርዶችን ወይም QR ኮዶችን ስካን ያድርጉ። ስርአቱ በ AI በመታገዝ መረጃውን በቅፅበት ያነባል።'
+                  : 'Scan ID cards or QR codes. The system uses AI to extract and transmit data in real-time to the command center.'}
               </p>
             </div>
-          )}
-
-          {status === 'sending' && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mb-4"></div>
-              <p className="text-lg font-medium text-brand-primary">
-                {lang === 'am' ? 'ወደ ቴሌግራም በመላክ ላይ... ⏳' : 'Sending to Telegram... ⏳'}
-              </p>
-            </div>
-          )}
-
-          {status === 'success' && (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <CheckCircle size={32} className="text-green-600" />
-              </div>
-              <h3 className="text-xl font-bold text-green-600 mb-2">
-                {lang === 'am' ? 'በተሳካ ሁኔታ ተልኳል! ✅' : 'Sent Successfully! ✅'}
-              </h3>
-              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg w-full mt-4 border border-gray-200 dark:border-gray-600">
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{lang === 'am' ? 'የተገኘ መረጃ፡' : 'Scanned Data:'}</p>
-                <p className="font-mono font-medium break-all">{scannedData}</p>
-              </div>
-              <button onClick={resetScanner} className="mt-6 btn-primary w-full">
-                {lang === 'am' ? 'ዝጋ' : 'Close'}
-              </button>
-            </div>
-          )}
-
-          {status === 'error' && (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                <AlertCircle size={32} className="text-red-600" />
-              </div>
-              <h3 className="text-lg font-bold text-red-600 mb-2">
-                {lang === 'am' ? 'ስህተት አጋጥሟል' : 'Error Occurred'}
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300 mb-6">{errorMessage}</p>
-              <button onClick={resetScanner} className="btn-secondary w-full">
-                {lang === 'am' ? 'እንደገና ሞክር' : 'Try Again'}
-              </button>
-            </div>
-          )}
-        </div>
-      </motion.div>
+            <button 
+              onClick={startScanner} 
+              className="btn-primary w-full py-5 text-lg shadow-xl shadow-brand-accent/20 flex items-center justify-center gap-3"
+            >
+              <CameraIcon size={24} />
+              {lang === 'am' ? 'ካሜራ ክፈት' : 'Open Camera'}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

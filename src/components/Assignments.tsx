@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ClipboardList, Plus, Search, Trash2, Calendar, Edit2, CheckCircle } from 'lucide-react';
+import { ClipboardList, Plus, Search, Trash2, Calendar, Edit2, CheckCircle, Shield, User } from 'lucide-react';
 import { Assignment, Incident, Officer } from '../types';
 import { motion } from 'motion/react';
 import { Language, translations } from '../lib/translations';
@@ -118,8 +118,19 @@ export function Assignments({ assignments, incidents, officers, lang, onAdd, onU
         </div>
 
         <div className="space-y-3">
-          {filteredAssignments.map((assignment) => (
-            <motion.div 
+          {filteredAssignments.length === 0 ? (
+            <div className="text-center py-16 bg-brand-bg/20 rounded-2xl border border-brand-border/50">
+              <ClipboardList className="mx-auto text-brand-text-secondary opacity-20 mb-4" size={48} />
+              <h3 className="text-lg font-bold mb-1">
+                {lang === 'am' ? 'ምንም የተሰጡ ስራዎች የሉም' : 'No Results'}
+              </h3>
+              <p className="text-sm text-brand-text-secondary">
+                {lang === 'am' ? 'እባክዎ ሌላ ሰርች ወይም ፊልተር ይሞክሩ።' : 'No assignments found matching your criteria.'}
+              </p>
+            </div>
+          ) : (
+            filteredAssignments.map((assignment) => (
+              <motion.div 
               layout
               key={assignment.id}
               className="group flex items-center gap-4 p-4 bg-brand-bg/30 border border-brand-border rounded-xl hover:border-brand-accent/30 transition-all"
@@ -137,15 +148,24 @@ export function Assignments({ assignments, incidents, officers, lang, onAdd, onU
               </button>
               
               <div className="flex-1 min-w-0">
-                <h4 className={`font-bold transition-all ${assignment.status === 'Completed' ? 'text-brand-text-secondary line-through' : ''}`}>
-                  {assignment.title}
-                </h4>
-                <div className="flex items-center gap-4 mt-1">
-                  <span className="text-xs text-brand-accent font-medium">
-                    {incidents.find(i => i.id === assignment.incidentId)?.title}
+                <div className="flex items-center gap-2 mb-1">
+                  <h4 className={`font-bold transition-all ${assignment.status === 'Completed' ? 'text-brand-text-secondary line-through' : ''}`}>
+                    {assignment.title}
+                  </h4>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                    assignment.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
+                  }`}>
+                    {assignment.status}
                   </span>
-                  <span className="text-xs text-brand-text-secondary">
-                    {officers.find(o => o.id === assignment.officerId)?.name}
+                </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <span className="text-xs text-brand-accent font-medium flex items-center gap-1">
+                    <Shield size={10} />
+                    {incidents.find(i => i.id === assignment.incidentId)?.title || 'Unknown Incident'}
+                  </span>
+                  <span className="text-xs text-brand-text-secondary flex items-center gap-1">
+                    <User size={10} />
+                    {officers.find(o => o.id === assignment.officerId)?.name || 'Unknown Officer'}
                   </span>
                   <div className="flex items-center gap-1 text-xs text-brand-text-secondary">
                     <Calendar size={12} />
@@ -169,7 +189,8 @@ export function Assignments({ assignments, incidents, officers, lang, onAdd, onU
                 </button>
               </div>
             </motion.div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
