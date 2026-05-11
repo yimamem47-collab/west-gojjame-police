@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs/promises";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
@@ -14,6 +15,104 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json());
+
+  // API Route: GitHub Sync - Pushes local files to the GitHub repo
+  app.post("/api/github/sync", async (req, res) => {
+    const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
+    const REPO_OWNER = "yimamem47-collab";
+    const REPO_NAME = "west-gojjame-police";
+
+    if (!GITHUB_TOKEN) {
+      return res.status(500).json({ error: "GitHub token missing on server" });
+    }
+
+    // Files to sync (expand this list as needed)
+    const filesToSync = [
+      "src/App.tsx",
+      "src/firebase.ts",
+      "src/services/geminiService.ts",
+      "src/hooks/useAppData.ts",
+      "src/components/Dashboard.tsx",
+      "src/components/Layout.tsx",
+      "src/components/AIAssistant.tsx",
+      "src/components/Settings.tsx",
+      "src/components/Auth.tsx",
+      "src/components/Navigation.tsx",
+      "src/components/CrimeTipForm.tsx",
+      "src/components/Reports.tsx",
+      "src/components/Map.tsx",
+      "src/components/TrafficSafety.tsx",
+      "src/components/CorruptionReport.tsx",
+      "src/components/Home.tsx",
+      "src/components/PoliceServices.tsx",
+      "src/components/AIAssistant.tsx",
+      "src/types.ts",
+      "src/constants.ts",
+      "src/lib/translations.ts",
+      "src/services/diagnosticService.ts",
+      "src/services/githubFileService.ts",
+      "firestore.rules",
+      "firebase-blueprint.json",
+      "package.json",
+      "vite.config.ts",
+      "index.html",
+      "src/index.css",
+      "AGENTS.md",
+      "server.ts",
+      ".env.example"
+    ];
+
+    const results = [];
+
+    for (const filePath of filesToSync) {
+      try {
+        const absolutePath = path.join(process.cwd(), filePath);
+        const content = await fs.readFile(absolutePath, "utf-8");
+        const base64Content = Buffer.from(content).toString("base64");
+
+        // 1. Get SHA if file exists
+        const getUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${filePath}`;
+        const getRes = await fetch(getUrl, {
+          headers: {
+            "Authorization": `token ${GITHUB_TOKEN}`,
+            "Accept": "application/vnd.github.v3+json"
+          }
+        });
+
+        let sha;
+        if (getRes.ok) {
+          const data = await getRes.json();
+          sha = data.sha;
+        }
+
+        // 2. Push content
+        const putRes = await fetch(getUrl, {
+          method: "PUT",
+          headers: {
+            "Authorization": `token ${GITHUB_TOKEN}`,
+            "Content-Type": "application/json",
+            "Accept": "application/vnd.github.v3+json"
+          },
+          body: JSON.stringify({
+            message: `Sync ${filePath} from AI Studio Dashboard`,
+            content: base64Content,
+            sha
+          })
+        });
+
+        if (putRes.ok) {
+          results.push({ file: filePath, status: "success" });
+        } else {
+          const err = await putRes.json();
+          results.push({ file: filePath, status: "error", message: err.message });
+        }
+      } catch (err: any) {
+        results.push({ file: filePath, status: "error", message: err.message });
+      }
+    }
+
+    res.json({ results });
+  });
 
   // API Route: Proxy Telegram to bypass browser CORS/fetching issues and hide token
   app.post("/api/telegram", async (req, res) => {
