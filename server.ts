@@ -58,12 +58,16 @@ async function startServer() {
       "src/components/QRScanner.tsx",
       "src/components/Scanner.tsx",
       "src/components/ZoneReports.tsx",
+      "src/components/CrimeTipForm.tsx",
+      "src/components/Map.tsx",
+      "src/components/Navigation.tsx",
       "src/types.ts",
       "src/constants.ts",
       "src/lib/translations.ts",
-      "src/services/diagnostics.ts",
+      "src/services/diagnosticService.ts",
       "src/services/githubFileService.ts",
       "src/services/telegramService.ts",
+      "src/services/geminiService.ts",
       "firestore.rules",
       "firebase-blueprint.json",
       "package.json",
@@ -72,7 +76,8 @@ async function startServer() {
       "src/index.css",
       "AGENTS.md",
       "server.ts",
-      ".env.example"
+      ".env.example",
+      "public/police-logo.png"
     ];
 
     const results = [];
@@ -80,8 +85,16 @@ async function startServer() {
     for (const filePath of filesToSync) {
       try {
         const absolutePath = path.join(process.cwd(), filePath);
-        const content = await fs.readFile(absolutePath, "utf-8");
-        const base64Content = Buffer.from(content).toString("base64");
+        let base64Content;
+        
+        // Handle images/binary files differently
+        if (filePath.endsWith('.png') || filePath.endsWith('.jpg') || filePath.endsWith('.ico')) {
+          const buffer = await fs.readFile(absolutePath);
+          base64Content = buffer.toString("base64");
+        } else {
+          const content = await fs.readFile(absolutePath, "utf-8");
+          base64Content = Buffer.from(content).toString("base64");
+        }
 
         // 1. Get SHA if file exists
         const getUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${filePath}`;
