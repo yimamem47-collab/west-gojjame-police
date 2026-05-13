@@ -1,4 +1,5 @@
 export interface SyncResult {
+export interface SyncResult {
   file: string;
   status: 'success' | 'error';
   message?: string;
