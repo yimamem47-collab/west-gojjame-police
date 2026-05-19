@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Send, CheckCircle, AlertCircle, X, Info, MapPin, Phone, User, Mail, MessageSquare, Briefcase } from 'lucide-react';
+import { Shield, Send, CheckCircle2, AlertCircle, X, Info, MapPin, Phone, User, Mail, MessageSquare, Briefcase, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, translations } from '../lib/translations';
 import { db, auth } from '../firebase';
@@ -88,7 +88,7 @@ export function CorruptionReport({ lang, onClose }: CorruptionReportProps) {
               className="glass-card p-12 text-center space-y-6"
             >
               <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border-2 border-emerald-500/20">
-                <CheckCircle size={48} className="text-emerald-500" />
+                <CheckCircle2 size={48} className="text-emerald-500" />
               </div>
               <h3 className="text-2xl font-bold text-emerald-500">{t.corruptionReportSuccess}</h3>
               <p className="text-brand-text-secondary">ጥቆማዎ በሚስጥር ይጠበቃል። ለሀገር ሰላም መቆምዎ እናመሰግናለን።</p>
@@ -179,7 +179,7 @@ export function CorruptionReport({ lang, onClose }: CorruptionReportProps) {
 
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-brand-text-secondary mb-2">
-                      <MapPin size={16} /> {t.locationOriginal}
+                      <MapPin size={16} /> {t.location || 'Location'}
                     </label>
                     <input 
                       type="text" 
@@ -230,7 +230,7 @@ export function CorruptionReport({ lang, onClose }: CorruptionReportProps) {
                   disabled={status === 'submitting'}
                   className="btn-primary w-full py-4 text-brand-bg font-bold text-lg flex items-center justify-center gap-2 shadow-xl shadow-brand-accent/20"
                 >
-                  {status === 'submitting' ? <RefreshCw className="animate-spin" /> : <Send size={24} />}
+                  {status === 'submitting' ? <RefreshCw className="animate-spin" size={24} /> : <Send size={24} />}
                   {t.submitCorruptionTip}
                 </button>
               </div>
@@ -247,9 +247,3 @@ export function CorruptionReport({ lang, onClose }: CorruptionReportProps) {
     </div>
   );
 }
-
-const RefreshCw = ({ className }: { className?: string }) => (
-  <svg className={`w-6 h-6 ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
-  </svg>
-);
