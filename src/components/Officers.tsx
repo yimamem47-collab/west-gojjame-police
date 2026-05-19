@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Users, Plus, Search, Trash2, Edit2, Mail, Shield, BadgeCheck, MapPin, Phone } from 'lucide-react';
 import { Officer } from '../types';
-import { motion } from 'framer-motion'; // Reverted to standard framer-motion import
+import { motion } from 'framer-motion'; 
 import { Language, translations } from '../lib/translations';
 import { dialPhone } from '../lib/utils';
 
@@ -47,7 +47,6 @@ export function Officers({ officers, lang, onAdd, onUpdate, onDelete }: Officers
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
     if (!newOfficer.name.trim() || newOfficer.name.length < 3) {
       alert(lang === 'am' ? 'እባክዎ ትክክለኛ ስም ያስገቡ (ቢያንስ 3 ፊደላት)' : 'Please enter a valid name (min 3 characters)');
       return;
@@ -119,7 +118,7 @@ export function Officers({ officers, lang, onAdd, onUpdate, onDelete }: Officers
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        ={filteredOfficers.map((officer) => (
+        {filteredOfficers.map((officer) => (
           <motion.div 
             layout
             key={officer.id} 
@@ -150,4 +149,166 @@ export function Officers({ officers, lang, onAdd, onUpdate, onDelete }: Officers
                   </button>
                   <button 
                     onClick={() => onDelete(officer.id)}
-                    className="p-2 text-brand-text
+                    className="p-2 text-brand-text-secondary hover:text-rose-400 transition-colors"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                  officer.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400' : 
+                  officer.status === 'On Leave' ? 'bg-amber-500/10 text-amber-400' : 
+                  'bg-rose-500/10 text-rose-400'
+                }`}>
+                  {(t.officerStatuses as any)[officer.status] || officer.status}
+                </span>
+              </div>
+            </div>
+            <h3 className="text-lg font-bold mb-1">{officer.name}</h3>
+            <p className="text-brand-accent text-xs font-bold uppercase tracking-widest mb-3">
+              {(t.ranks as any)[officer.rank] || officer.rank}
+            </p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-brand-text-secondary text-sm">
+                <BadgeCheck size={14} className="text-brand-accent" />
+                <span>{t.badge}: {officer.badgeNumber}</span>
+              </div>
+              <div className="flex items-center gap-2 text-brand-text-secondary text-sm">
+                <MapPin size={14} className="text-brand-accent" />
+                <span>{t.station}: {officer.station}</span>
+              </div>
+              <button 
+                onClick={() => dialPhone(officer.phone)}
+                className="flex items-center gap-2 text-brand-text-secondary text-sm hover:text-brand-accent transition-colors"
+              >
+                <Phone size={14} className="text-brand-accent" />
+                <span>{officer.phone}</span>
+              </button>
+              <div className="flex items-center gap-2 text-brand-text-secondary text-sm">
+                <Mail size={14} className="text-brand-accent" />
+                <span>{officer.email}</span>
+              </div>
+            </div>
+            <button className="w-full mt-6 py-2 text-sm font-bold text-brand-accent border border-brand-accent/20 rounded-xl hover:bg-brand-accent/5 transition-all">
+              {t.assignments || 'Assignments'}
+            </button>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-card w-full max-w-md p-8 max-h-[90vh] overflow-y-auto"
+          >
+            <h2 className="text-2xl font-bold mb-6">{editingOfficer ? t.editProfile : (t.addOfficer || 'Add Officer')}</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.officerName}</label>
+                    <input 
+                      required
+                      type="text" 
+                      className="input-field" 
+                      value={newOfficer.name}
+                      onChange={(e) => setNewOfficer({...newOfficer, name: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.photoUrl}</label>
+                    <input 
+                      type="text" 
+                      className="input-field" 
+                      placeholder="https://..."
+                      value={newOfficer.photo}
+                      onChange={(e) => setNewOfficer({...newOfficer, photo: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.rank || 'Rank'}</label>
+                  <select 
+                    className="input-field"
+                    value={newOfficer.rank}
+                    onChange={(e) => setNewOfficer({...newOfficer, rank: e.target.value})}
+                  >
+                    {Object.entries(t.ranks).map(([key, label]) => (
+                      <option key={key} value={key}>{label as string}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.badgeNumber}</label>
+                  <input 
+                    required
+                    type="text" 
+                    className="input-field" 
+                    value={newOfficer.badgeNumber}
+                    onChange={(e) => setNewOfficer({...newOfficer, badgeNumber: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.station}</label>
+                <select 
+                  required
+                  className="input-field"
+                  value={newOfficer.station}
+                  onChange={(e) => setNewOfficer({...newOfficer, station: e.target.value})}
+                >
+                  <option value="">{t.selectStation}</option>
+                  {Object.entries(t.stations || {}).map(([key, label]) => (
+                    <option key={key} value={label as string}>{label as string}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.phone}</label>
+                <input 
+                  required
+                  type="tel" 
+                  className="input-field" 
+                  value={newOfficer.phone}
+                  onChange={(e) => setNewOfficer({...newOfficer, phone: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.email}</label>
+                <input 
+                  required
+                  type="email" 
+                  className="input-field" 
+                  value={newOfficer.email}
+                  onChange={(e) => setNewOfficer({...newOfficer, email: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-brand-text-secondary mb-2">{t.officerStatus}</label>
+                <select 
+                  className="input-field"
+                  value={newOfficer.status}
+                  onChange={(e) => setNewOfficer({...newOfficer, status: e.target.value as any})}
+                >
+                  {Object.entries(t.officerStatuses).map(([key, label]) => (
+                    <option key={key} value={key}>{label as string}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={resetFormState} className="btn-secondary flex-1">
+                  {t.cancel}
+                </button>
+                <button type="submit" className="btn-primary flex-1">
+                  {editingOfficer ? t.saveProfile : (t.addOfficer || 'Add Officer')}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+    </div>
+  );
+}
