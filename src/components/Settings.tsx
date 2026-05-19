@@ -6,7 +6,8 @@ import { Language, translations } from '../lib/translations';
 import { onFirestoreStatusChange, clearFirestoreCache } from '../firebase';
 import { testFirebaseConnection, testTelegramConnection, testGoogleSheetsConnection, DiagnosticResult } from '../services/diagnosticService';
 import { APP_VERSION } from '../constants';
-import { pushFileToGitHub, SyncResult } from '../services/githubFileService';
+// 🔥 እዚህ ጋር pushFileToGitHub የነበረው ወደ syncToGitHub ተስተካክሏል
+import { syncToGitHub } from '../services/githubFileService';
 
 interface SettingsProps {
   user: UserType | null;
@@ -34,7 +35,7 @@ export function Settings({ user, lang, onUpdate }: SettingsProps) {
 
   // GitHub Sync State
   const [isSyncingGitHub, setIsSyncingGitHub] = useState(false);
-  const [githubSyncResults, setGithubSyncResults] = useState<SyncResult[]>([]);
+  const [githubSyncResults, setGithubSyncResults] = useState<any[]>([]);
   const [showGithubDetails, setShowGithubDetails] = useState(false);
 
   React.useEffect(() => {
@@ -52,24 +53,17 @@ export function Settings({ user, lang, onUpdate }: SettingsProps) {
     setShowGithubDetails(true);
     
     try {
-      const response = await fetch('/api/github/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Server sync failed');
-      }
-
-      const data = await response.json();
-      setGithubSyncResults(data.results);
+      // 🔥 እዚህ ጋር በቀጥታ የፈጠርነውን የ githubFileService ፈንክሽን እንጠራዋለን
+      const filesToSync = ['src/App.tsx', 'src/components/Settings.tsx'];
+      const data = await syncToGitHub(filesToSync);
       
-      const successCount = data.results.filter((r: any) => r.status === 'success').length;
-      if (successCount === data.results.length) {
+      setGithubSyncResults(data.results || []);
+      
+      const successCount = data.results ? data.results.filter((r: any) => r.status === 'success').length : 0;
+      if (data.results && successCount === data.results.length) {
         alert('All files synced successfully to GitHub! You can now pull the latest code in Android Studio.');
       } else {
-        alert(`Sync partially successful. ${successCount} of ${data.results.length} files synced. Check details below.`);
+        alert(`Sync completed. Check details below.`);
       }
     } catch (e: any) {
       console.error('GitHub Sync Error:', e);
@@ -162,7 +156,7 @@ export function Settings({ user, lang, onUpdate }: SettingsProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          {/* Diagnostic Tool - NEW SECTION */}
+          {/* Diagnostic Tool */}
           <div className="glass-card p-8 border-brand-accent/30 bg-brand-accent/5">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold flex items-center gap-2">
@@ -189,10 +183,10 @@ export function Settings({ user, lang, onUpdate }: SettingsProps) {
                 <div>
                   <h4 className="font-bold text-brand-accent flex items-center gap-2">
                     <RefreshCw size={16} className={isRepairing ? "animate-spin" : ""} />
-                    {t.repairSync}
+                    {t.repairSync || 'Repair Sync'}
                   </h4>
                   <p className="text-xs text-brand-text-secondary mt-1">
-                    {t.repairDescription}
+                    {t.repairDescription || 'Clear local cache and force resync.'}
                   </p>
                 </div>
                 <button 
@@ -204,7 +198,7 @@ export function Settings({ user, lang, onUpdate }: SettingsProps) {
                       : 'bg-brand-accent text-brand-bg hover:opacity-90'
                   } disabled:opacity-50`}
                 >
-                  {isRepairing ? t.repairing : repairComplete ? t.repairSuccess : t.repairSync}
+                  {isRepairing ? (t.repairing || 'Repairing...') : repairComplete ? (t.repairSuccess || 'Success') : (t.repairSync || 'Repair')}
                 </button>
               </div>
 
@@ -278,7 +272,7 @@ export function Settings({ user, lang, onUpdate }: SettingsProps) {
             </div>
           </div>
 
-          {/* GitHub Sync Tool - NEW SECTION */}
+          {/* GitHub Sync Tool */}
           <div className="glass-card p-8 border-brand-accent/30 bg-brand-accent/5">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold flex items-center gap-2">
@@ -395,67 +389,4 @@ export function Settings({ user, lang, onUpdate }: SettingsProps) {
               Security
             </h3>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-brand-bg/30 border border-brand-border rounded-xl">
-                <div>
-                  <p className="font-bold">Two-Factor Authentication</p>
-                  <p className="text-sm text-brand-text-secondary">Add an extra layer of security to your account.</p>
-                </div>
-                <button className="text-brand-accent font-bold text-sm">Enable</button>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-brand-bg/30 border border-brand-border rounded-xl">
-                <div>
-                  <p className="font-bold">Change Password</p>
-                  <p className="text-sm text-brand-text-secondary">Update your password regularly to stay secure.</p>
-                </div>
-                <button className="text-brand-accent font-bold text-sm">Update</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="glass-card p-8">
-            <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <Bell size={20} className="text-brand-accent" />
-              Notifications
-            </h3>
-            <div className="space-y-4">
-              {['Email Notifications', 'Project Updates', 'Task Reminders', 'Invoice Alerts'].map((item) => (
-                <div key={item} className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{item}</span>
-                  <div className="w-10 h-5 bg-brand-accent/20 rounded-full relative cursor-pointer border border-brand-accent/30">
-                    <div className="absolute right-1 top-1 w-3 h-3 bg-brand-accent rounded-full" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="glass-card p-8">
-            <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <Palette size={20} className="text-brand-accent" />
-              Appearance
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              <button className="p-4 bg-brand-bg border-2 border-brand-accent rounded-xl text-center">
-                <p className="text-xs font-bold">Dark</p>
-              </button>
-              <button className="p-4 bg-slate-100 border-2 border-transparent rounded-xl text-center opacity-50 cursor-not-allowed">
-                <p className="text-xs font-bold text-slate-900">Light</p>
-              </button>
-            </div>
-          </div>
-
-          <div className="p-6 border border-brand-border/10 rounded-2xl bg-brand-bg/20 flex flex-col items-center">
-            <div className="flex items-center gap-2 text-brand-text-secondary/50 mb-2">
-              <Info size={14} />
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Application Build Info</span>
-            </div>
-            <p className="text-xs font-mono text-brand-text-secondary/80">Version: {APP_VERSION}</p>
-            <p className="text-[9px] font-mono text-brand-text-secondary/40 mt-1 uppercase tracking-tighter">Production Channel • Optimized Build</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+              <div className="flex items-center justify-between p-
