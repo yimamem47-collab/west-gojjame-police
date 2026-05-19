@@ -4,10 +4,10 @@ import { User as UserType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, translations } from '../lib/translations';
 import { onFirestoreStatusChange, clearFirestoreCache } from '../firebase';
-import { testFirebaseConnection, testTelegramConnection, testGoogleSheetsConnection, DiagnosticResult } from '../services/diagnosticService';
-import { APP_VERSION } from '../constants';
 import { testFirebaseConnection, testTelegramConnection, testGoogleSheetsConnection, DiagnosticResult } from '../services/diagnostics';
-
+import { APP_VERSION } from '../constants';
+import { pushFileToGitHub, SyncResult } from '../services/githubFileService';
+import { SyncResult } from '../services/githubFileService';
 interface SettingsProps {
   user: UserType | null;
   lang: Language;
@@ -34,7 +34,7 @@ export function Settings({ user, lang, onUpdate }: SettingsProps) {
 
   // GitHub Sync State
   const [isSyncingGitHub, setIsSyncingGitHub] = useState(false);
-  const [githubSyncResults, setGithubSyncResults] = useState<any[]>([]);
+  const [githubSyncResults, setGithubSyncResults] = useState<SyncResult[]>([]);
   const [showGithubDetails, setShowGithubDetails] = useState(false);
 
   React.useEffect(() => {
@@ -52,16 +52,24 @@ export function Settings({ user, lang, onUpdate }: SettingsProps) {
     setShowGithubDetails(true);
     
     try {
-      const filesToSync = ['src/App.tsx', 'src/components/Settings.tsx'];
-      const data = await syncToGitHub(filesToSync);
+      const response = await fetch('/api/github/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Server sync failed');
+      }
+
+      const data = await response.json();
+      setGithubSyncResults(data.results);
       
-      setGithubSyncResults(data.results || []);
-      
-      const successCount = data.results ? data.results.filter((r: any) => r.status === 'success').length : 0;
-      if (data.results && successCount === data.results.length) {
+      const successCount = data.results.filter((r: any) => r.status === 'success').length;
+      if (successCount === data.results.length) {
         alert('All files synced successfully to GitHub! You can now pull the latest code in Android Studio.');
       } else {
-        alert(`Sync completed. Check details below.`);
+        alert(`Sync partially successful. ${successCount} of ${data.results.length} files synced. Check details below.`);
       }
     } catch (e: any) {
       console.error('GitHub Sync Error:', e);
@@ -153,191 +161,12 @@ export function Settings({ user, lang, onUpdate }: SettingsProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          {/* Diagnostic Tool */}
-          <div className="glass-card p-8 border-brand-accent/30 bg-brand-accent/5">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold flex items-center gap-2">
-                <Activity size={20} className="text-brand-accent" />
-                System Connectivity Diagnostic
-              </h3>
-              <button 
-                onClick={runAllDiagnostics}
-                disabled={isRunningDiagnostics}
-                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand-accent hover:opacity-80 transition-opacity disabled:opacity-50"
-              >
-                {isRunningDiagnostics ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-                {isRunningDiagnostics ? 'Running...' : 'Run Full Check'}
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <p className="text-sm text-brand-text-secondary mb-4">
-                Verify that all external services (Firebase, Telegram, and Google Sheets) are correctly connected and responding.
-              </p>
-              
-              {/* Repair Button */}
-              <div className="p-4 bg-brand-accent/10 border border-brand-accent/20 rounded-xl mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
-                <div>
-                  <h4 className="font-bold text-brand-accent flex items-center gap-2">
-                    <RefreshCw size={16} className={isRepairing ? "animate-spin" : ""} />
-                    {t.repairSync || 'Repair Sync'}
-                  </h4>
-                  <p className="text-xs text-brand-text-secondary mt-1">
-                    {t.repairDescription || 'Clear local cache and force resync.'}
-                  </p>
-                </div>
-                <button 
-                  onClick={handleRepair}
-                  disabled={isRepairing}
-                  className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-widest transition-all ${
-                    repairComplete 
-                      ? 'bg-emerald-500 text-white' 
-                      : 'bg-brand-accent text-brand-bg hover:opacity-90'
-                  } disabled:opacity-50`}
-                >
-                  {isRepairing ? (t.repairing || 'Repairing...') : repairComplete ? (t.repairSuccess || 'Success') : (t.repairSync || 'Repair')}
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {['Firebase', 'Telegram', 'GoogleSheets'].map((service) => {
-                  const result = diagnostics.find(d => d.service === service);
-                  return (
-                    <div key={service} className="p-4 bg-brand-bg/40 border border-brand-border rounded-xl flex flex-col items-center justify-center text-center">
-                      <p className="text-xs font-bold uppercase tracking-widest text-brand-text-secondary mb-2">{service}</p>
-                      {result ? (
-                        <div className="flex flex-col items-center">
-                          {result.status === 'success' ? (
-                            <CheckCircle2 className="text-emerald-500 mb-2" size={24} />
-                          ) : (
-                            <XCircle className="text-rose-500 mb-2" size={24} />
-                          )}
-                          <p className={`text-xs font-medium ${result.status === 'success' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                            {result.message}
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center opacity-30">
-                          <Activity className="text-brand-text-secondary mb-2" size={24} />
-                          <p className="text-xs font-medium text-brand-text-secondary">Not Tested</p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {diagnostics.length > 0 && (
-                <div className="pt-4 flex items-center gap-4">
-                  <button 
-                    onClick={() => setShowDiagnosticReport(!showDiagnosticReport)}
-                    className="text-xs font-bold text-brand-text-secondary hover:text-white flex items-center gap-1"
-                  >
-                    {showDiagnosticReport ? 'Hide Details' : 'Show Detailed Report'}
-                  </button>
-                  <button 
-                    onClick={copyDiagnosticReport}
-                    className="text-xs font-bold text-brand-accent hover:opacity-80 flex items-center gap-1"
-                  >
-                    <Copy size={12} />
-                    Copy Report
-                  </button>
-                </div>
-              )}
-
-              <AnimatePresence>
-                {showDiagnosticReport && diagnostics.length > 0 && (
-                  <motion.div 
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="mt-4 p-4 bg-black/40 border border-brand-border rounded-xl font-mono text-[10px] leading-relaxed text-brand-text-secondary">
-                      <p className="text-brand-accent mb-2 uppercase tracking-widest">Diagnostic Details:</p>
-                      {diagnostics.map((d, i) => (
-                        <div key={i} className="mb-2 last:mb-0">
-                          <p className="text-white">[{d.service}] {d.status.toUpperCase()}</p>
-                          <p>Message: {d.message}</p>
-                          {d.details && <p className="text-rose-400/70">Error: {d.details}</p>}
-                        </div>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-
-          {/* GitHub Sync Tool */}
-          <div className="glass-card p-8 border-brand-accent/30 bg-brand-accent/5">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold flex items-center gap-2">
-                <Send size={20} className="text-brand-accent" />
-                GitHub Repository Sync
-              </h3>
-              <button 
-                onClick={handleGitHubSync}
-                disabled={isSyncingGitHub}
-                className="btn-primary flex items-center gap-2 text-xs py-2 px-4"
-              >
-                {isSyncingGitHub ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-                {isSyncingGitHub ? 'Syncing...' : 'Sync Dashboard to GitHub'}
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <p className="text-sm text-brand-text-secondary">
-                Pushes the current AI Studio application state (code, rules, config) to your connected GitHub repository: 
-                <span className="text-brand-accent ml-1 font-mono">yimamem47-collab/west-gojjame-police</span>
-              </p>
-
-              {githubSyncResults.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <button 
-                      onClick={() => setShowGithubDetails(!showGithubDetails)}
-                      className="text-xs font-bold text-brand-text-secondary hover:text-white flex items-center gap-1"
-                    >
-                      {showGithubDetails ? 'Hide Status' : 'Show Status'}
-                    </button>
-                    <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
-                      {githubSyncResults.filter(r => r.status === 'success').length} of {githubSyncResults.length} Files Synced
-                    </p>
-                  </div>
-
-                  <AnimatePresence>
-                    {showGithubDetails && (
-                      <motion.div 
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="bg-black/40 border border-brand-border rounded-xl p-3 overflow-hidden"
-                      >
-                        <div className="grid grid-cols-1 gap-2">
-                          {githubSyncResults.map((result, idx) => (
-                            <div key={idx} className="flex items-center justify-between text-[10px] font-mono">
-                              <span className="text-brand-text-secondary truncate mr-2">{result.file}</span>
-                              <span className={result.status === 'success' ? 'text-emerald-500' : 'text-rose-500'}>
-                                {result.status.toUpperCase()}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Profile Information */}
-          <div className="glass-card p-8">
+        <div className="lg:col-span-2 space-y-8">
+          {/* SECTION 1: ACCESS & PROFILE */}
+          <div className="glass-card p-8 bg-brand-bg/20 border-brand-border/40">
             <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
               <User size={20} className="text-brand-accent" />
-              {t.profile || 'Profile Information'}
+              Access & Profile Information
             </h3>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -382,32 +211,240 @@ export function Settings({ user, lang, onUpdate }: SettingsProps) {
             </form>
           </div>
 
-          {/* Security */}
-          <div className="glass-card p-8">
-            <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <Shield size={20} className="text-brand-accent" />
-              Security
-            </h3>
+          {/* SECTION 2: CODE, PLANNING & AUTOMATION */}
+          <section id="automation" className="glass-card p-8 border-brand-accent/30 bg-brand-accent/5 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <RefreshCw size={80} className="text-brand-accent" />
+            </div>
+            
+            <div className="flex items-center justify-between mb-8 relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-brand-accent/20 rounded-2xl text-brand-accent">
+                  <Send size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black tracking-tight text-white uppercase italic">Planning & Automation</h3>
+                  <p className="text-xs text-brand-text-secondary font-bold tracking-widest opacity-60">GITHUB REPOSITORY SYNC</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-6 relative z-10">
+              <div className="p-5 bg-black/40 border border-brand-accent/20 rounded-2xl backdrop-blur-sm">
+                <h4 className="text-sm font-bold text-brand-accent mb-2 flex items-center gap-2">
+                  <ExternalLink size={14} />
+                  Continuous Integration
+                </h4>
+                <p className="text-sm text-brand-text-secondary leading-relaxed">
+                  Pushes the latest dashboard source code, Firestore rules, and application blueprints directly to your connected GitHub repository. This process enables synchronized development with your Android Studio local environment.
+                </p>
+                
+                <div className="mt-4 flex items-center justify-between p-3 bg-brand-bg/50 border border-brand-border rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
+                      <Shield size={16} className="text-brand-accent" />
+                    </div>
+                    <span className="text-[11px] font-mono font-bold text-brand-text-secondary">REPO: yimamem47-collab / west-gojjame-police</span>
+                  </div>
+                  <button 
+                    onClick={handleGitHubSync}
+                    disabled={isSyncingGitHub}
+                    className={`btn-primary flex items-center gap-2 text-xs py-2 px-6 shadow-xl shadow-brand-accent/20 transition-all active:scale-95 ${isSyncingGitHub ? 'opacity-50 grayscale' : ''}`}
+                  >
+                    {isSyncingGitHub ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                    {isSyncingGitHub ? 'SYNCING...' : 'SYNC CORE NOW'}
+                  </button>
+                </div>
+              </div>
+
+              {githubSyncResults.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between border-t border-brand-border pt-4">
+                    <button 
+                      onClick={() => setShowGithubDetails(!showGithubDetails)}
+                      className="text-[10px] font-black uppercase tracking-widest text-brand-accent hover:text-white transition-colors"
+                    >
+                      {showGithubDetails ? 'Collapse Logs' : 'View Sync Details'}
+                    </button>
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-24 bg-brand-bg rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${(githubSyncResults.filter(r => r.status === 'success').length / githubSyncResults.length) * 100}%` }}
+                          className="h-full bg-emerald-500"
+                        />
+                      </div>
+                      <span className="text-[10px] font-bold text-white tracking-widest">
+                        {githubSyncResults.filter(r => r.status === 'success').length}/{githubSyncResults.length} OK
+                      </span>
+                    </div>
+                  </div>
+
+                  <AnimatePresence>
+                    {showGithubDetails && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="bg-black/80 border border-brand-border/50 rounded-2xl p-4 overflow-hidden"
+                      >
+                        <div className="grid grid-cols-1 gap-2 max-h-[180px] overflow-y-auto pr-2 custom-scrollbar">
+                          {githubSyncResults.map((result, idx) => (
+                            <div key={idx} className="flex items-center justify-between text-[10px] font-mono py-1 border-b border-white/5 last:border-0">
+                              <span className="text-brand-text-secondary truncate pr-4">{result.file}</span>
+                              <div className="flex items-center gap-2 shrink-0">
+                                {result.status === 'success' ? (
+                                  <span className="text-emerald-400 font-black">SYNCED</span>
+                                ) : (
+                                  <span className="text-rose-400 font-black" title={result.message}>ERROR</span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* SECTION 3: SECURITY & DATA INTEGRITY */}
+          <div className="glass-card p-8 border-brand-border/40">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold flex items-center gap-2">
+                <Shield size={20} className="text-brand-accent" />
+                Security & Data Integrity
+              </h3>
+            </div>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-brand-bg/30 border border-brand-border rounded-xl">
-                <div>
-                  <p className="font-bold">Two-Factor Authentication</p>
-                  <p className="text-sm text-brand-text-secondary">Add an extra layer of security to your account.</p>
+              <div className="p-5 bg-rose-500/5 border border-rose-500/10 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex-1">
+                  <h4 className="font-bold text-rose-400 flex items-center gap-2">
+                    <RefreshCw size={16} className={isRepairing ? "animate-spin" : ""} />
+                    Network Cache Reset
+                  </h4>
+                  <p className="text-xs text-brand-text-secondary mt-1">
+                    Forces the local database to bypass cached snapshots and re-sync all records from the cloud authorities.
+                  </p>
                 </div>
-                <button className="text-brand-accent font-bold text-sm">Enable</button>
+                <button 
+                  onClick={handleRepair}
+                  disabled={isRepairing}
+                  className="min-w-[140px] px-4 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:bg-rose-500/30 disabled:opacity-50"
+                >
+                  {isRepairing ? 'Resetting...' : 'Repair Sync'}
+                </button>
               </div>
-              <div className="flex items-center justify-between p-4 bg-brand-bg/30 border border-brand-border rounded-xl">
-                <div>
-                  <p className="font-bold">Change Password</p>
-                  <p className="text-sm text-brand-text-secondary">Update your password regularly to stay secure.</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center justify-between p-4 bg-brand-bg/30 border border-brand-border rounded-xl">
+                  <div>
+                    <p className="text-sm font-bold">Two-Factor Authentication</p>
+                    <p className="text-[10px] text-brand-text-secondary">Secure your digital officer identity.</p>
+                  </div>
+                  <button className="text-brand-accent font-bold text-[10px] uppercase tracking-wider">Enable</button>
                 </div>
-                <button className="text-brand-accent font-bold text-sm">Update</button>
+                <div className="flex items-center justify-between p-4 bg-brand-bg/30 border border-brand-border rounded-xl">
+                  <div>
+                    <p className="text-sm font-bold">Biometric Access</p>
+                    <p className="text-[10px] text-brand-text-secondary">Face/Fingerprint ID for mobile app.</p>
+                  </div>
+                  <button className="text-brand-accent font-bold text-[10px] uppercase tracking-wider">Configure</button>
+                </div>
               </div>
+            </div>
+          </div>
+
+          {/* SECTION 4: INTEGRATIONS & CONNECTIVITY */}
+          <div className="glass-card p-8 bg-brand-bg/20 border-brand-accent/10">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold flex items-center gap-2">
+                <Activity size={20} className="text-brand-accent" />
+                Integrations & Connectivity
+              </h3>
+              <button 
+                onClick={runAllDiagnostics}
+                disabled={isRunningDiagnostics}
+                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand-accent hover:opacity-80 transition-opacity disabled:opacity-50"
+              >
+                {isRunningDiagnostics ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                {isRunningDiagnostics ? 'Checking...' : 'Run Diagnostics'}
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {['Firebase', 'Telegram', 'GoogleSheets'].map((service) => {
+                  const result = diagnostics.find(d => d.service === service);
+                  return (
+                    <div key={service} className="p-5 bg-brand-bg/40 border border-brand-border rounded-2xl flex flex-col items-center justify-center text-center group hover:border-brand-accent/30 transition-colors">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-brand-text-secondary/60 mb-3">{service}</p>
+                      {result ? (
+                        <div className="flex flex-col items-center">
+                          {result.status === 'success' ? (
+                            <CheckCircle2 className="text-emerald-500 mb-2" size={28} />
+                          ) : (
+                            <XCircle className="text-rose-500 mb-2" size={28} />
+                          )}
+                          <p className={`text-[11px] font-bold leading-tight ${result.status === 'success' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {result.message}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center opacity-20">
+                          <Activity className="text-brand-text-secondary mb-2" size={28} />
+                          <p className="text-[11px] font-bold text-brand-text-secondary">Waiting</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <AnimatePresence>
+                {showDiagnosticReport && diagnostics.length > 0 && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden bg-black/60 border border-brand-border rounded-xl"
+                  >
+                    <div className="p-4 font-mono text-[10px] leading-relaxed text-brand-text-secondary">
+                      <p className="text-brand-accent mb-3 font-bold uppercase tracking-[0.2em] border-b border-brand-border pb-1">System Trace Log:</p>
+                      {diagnostics.map((d, i) => (
+                        <div key={i} className="mb-3 last:mb-0">
+                          <span className={d.status === 'success' ? 'text-emerald-400' : 'text-rose-400'}>[{d.service}] {d.status.toUpperCase()}</span>
+                          <p className="mt-0.5 opacity-80">{d.message}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {diagnostics.length > 0 && (
+                <div className="flex items-center justify-between pt-2">
+                  <button 
+                    onClick={() => setShowDiagnosticReport(!showDiagnosticReport)}
+                    className="text-xs font-bold text-brand-text-secondary hover:text-white flex items-center gap-1"
+                  >
+                    {showDiagnosticReport ? 'Hide Network Logs' : 'View Network Logs'}
+                  </button>
+                  <button 
+                    onClick={copyDiagnosticReport}
+                    className="text-xs font-bold text-brand-accent hover:opacity-80 flex items-center gap-1"
+                  >
+                    <Copy size={12} />
+                    Copy Trace
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Right Sidebar */}
         <div className="space-y-6">
           <div className="glass-card p-8">
             <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
