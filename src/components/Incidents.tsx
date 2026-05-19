@@ -1,330 +1,203 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  AlertTriangle, Plus, Search, Trash2, Edit2, Calendar, MapPin, Camera, 
-  Image as ImageIcon, Map, List, Volume2, Mic, Square, Info, X, 
-  CheckCircle, ChevronLeft, ChevronRight, Send, RefreshCw, FileText, 
-  File as FileIcon, FileCheck 
-} from 'lucide-react';
-import { Incident, Officer } from '../types';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState, useEffect } from 'react';
+import { FileText, Plus, Search, AlertCircle, Clock, CheckCircle2, ShieldAlert, MapPin, Calendar, User, Phone, Eye, Trash2, Mic, Square } from 'lucide-react';
+import { Incident } from '../types';
+import { motion } from 'framer-motion';
 import { Language, translations } from '../lib/translations';
-import { IncidentMap } from './IncidentMap';
-import { FilePicker } from '@capawesome/capacitor-file-picker';
-import { Capacitor } from '@capacitor/core';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../lib/firebase';
 
 interface IncidentsProps {
   incidents: Incident[];
-  officers: Officer[];
   lang: Language;
-  initialEditId?: string | null;
-  onAdd: (incident: Omit<Incident, 'id'>) => void;
-  onUpdate: (id: string, updates: Partial<Incident>) => void;
-  onDelete: (id: string) => void;
+  onAdd: (incident: Omit<Incident, 'id' | 'createdAt' | 'status'>) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }
 
-const initialFormState = () => ({
+const INITIAL_INCIDENT_STATE = {
   title: '',
-  status: 'Open' as const,
-  date: new Date().toISOString().split('T')[0],
-  location: '',
-  lat: undefined as number | undefined,
-  lng: undefined as number | undefined,
-  officerId: '',
-  filingStation: '',
-  recordingOfficerName: '',
-  recordingOfficerRank: 'constable',
-  type: 'Crime' as const,
-  category: 'other',
   description: '',
-  photos: [] as string[],
-  document_url: '',
-  documents: [] as { name: string; url: string }[],
-  voice_url: '',
-  trafficDetails: {
-    accidentType: 'pedestrianCollision',
-    accidentImpact: 'death',
-    numDeaths: 0,
-    numHeavyInjuries: 0,
-    numLightInjuries: 0,
-    propertyDamageEstimate: '',
-    driverExperience: 'exp1to5',
-    vehicleType: 'vPrivate',
-    plateNumber: '',
-    licenseGrade: 'lAutomobile',
-    reporterName: '',
-    reporterAddress: '',
-    reporterPhone: '',
-    reporterOther: ''
-  }
-});
+  category: 'Theft',
+  location: '',
+  reporterName: '',
+  reporterPhone: '',
+};
 
-export function Incidents({ incidents, officers, lang, initialEditId, onAdd, onUpdate, onDelete }: IncidentsProps) {
+export function Incidents({ incidents, lang, onAdd, onDelete }: IncidentsProps) {
   const t = translations[lang];
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingIncident, setEditingIncident] = useState<Incident | null>(null);
+  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+  
+  // Form state
+  const [formData, setFormData] = useState(INITIAL_INCIDENT_STATE);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [selectedDocs, setSelectedDocs] = useState<{ blob: Blob, name: string }[]>([]);
-  const [newIncident, setNewIncident] = useState<Omit<Incident, 'id'>>(initialFormState());
-  const [currentStep, setCurrentStep] = useState(1);
+
+  // Audio Recording states
   const [isRecording, setIsRecording] = useState(false);
-  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [activeAudio, setActiveAudio] = useState<string | null>(null);
 
-  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const filteredIncidents = incidents.filter(i =>
+    (i.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (i.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (i.location || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (i.reporterName || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  // Handle Edit triggering from parent components
-  useEffect(() => {
-    if (initialEditId) {
-      const incident = incidents.find(i => i.id === initialEditId);
-      if (incident) {
-        handleEdit(incident);
-      }
-    }
-  }, [initialEditId, incidents]);
-
-  // Update default officer when officers list is loaded
-  useEffect(() => {
-    if (officers.length > 0 && !newIncident.officerId) {
-      setNewIncident(prev => ({ 
-        ...prev, 
-        officerId: officers[0].id,
-        recordingOfficerName: officers[0].name,
-        recordingOfficerRank: officers[0].rank
-      }));
-    }
-  }, [officers, newIncident.officerId]);
-
-  // Voice recording timer handling
-  useEffect(() => {
-    if (isRecording) {
-      recordingIntervalRef.current = setInterval(() => {
-        setRecordingDuration(prev => {
-          if (prev >= 59) {
-            stopRecording();
-            return 60;
-          }
-          return prev + 1;
-        });
-      }, 1000);
-    } else {
-      if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
-    }
-    return () => {
-      if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
-    };
-  }, [isRecording]);
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingIncident(null);
-    setNewIncident(initialFormState());
-    setSelectedDocs([]);
-    setAudioBlob(null);
-    setAudioUrl(null);
-    setCurrentStep(1);
-  };
-
-  const handleEdit = (incident: Incident) => {
-    setEditingIncident(incident);
-    setNewIncident({
-      title: incident.title,
-      status: incident.status,
-      date: incident.date,
-      location: incident.location,
-      lat: incident.lat,
-      lng: incident.lng,
-      officerId: incident.officerId,
-      filingStation: incident.filingStation,
-      recordingOfficerName: incident.recordingOfficerName,
-      recordingOfficerRank: incident.recordingOfficerRank,
-      type: incident.type,
-      category: incident.category,
-      description: incident.description,
-      photos: incident.photos || [],
-      documents: incident.documents || [],
-      voice_url: incident.voice_url || '',
-      document_url: incident.document_url || '',
-      trafficDetails: incident.trafficDetails || initialFormState().trafficDetails
-    });
-    setIsModalOpen(true);
-  };
-
-  const handlePhotoUpload = async () => {
-    try {
-      const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
-      const image = await Camera.getPhoto({
-        quality: 90,
-        allowEditing: false,
-        resultType: CameraResultType.DataUrl,
-        source: CameraSource.Prompt
-      });
-
-      if (image.dataUrl) {
-        setNewIncident(prev => ({
-          ...prev,
-          photos: [...(prev.photos || []), image.dataUrl!].slice(0, 10)
-        }));
-      }
-    } catch (err) {
-      console.error("Camera error:", err);
-    }
-  };
-
-  const removePhoto = (index: number) => {
-    setNewIncident(prev => ({
-      ...prev,
-      photos: (prev.photos || []).filter((_, i) => i !== index)
-    }));
-  };
-
-  const handleDocUpload = async () => {
-    if (Capacitor.isNativePlatform()) {
-      try {
-        const result = await FilePicker.pickFiles({
-          types: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
-        });
-        
-        if (result.files.length > 0) {
-          const newDocs: { blob: Blob, name: string }[] = [];
-          for (const file of result.files) {
-            if (file.path) {
-              const response = await fetch(Capacitor.convertFileSrc(file.path));
-              const blob = await response.blob();
-              newDocs.push({ 
-                blob, 
-                name: file.name || `doc_${Date.now()}` 
-              });
-            }
-          }
-          setSelectedDocs(prev => [...prev, ...newDocs]);
-        }
-      } catch (err) {
-        console.error("File picker error:", err);
-      }
-    } else {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.pdf,.doc,.docx,.xls,.xlsx';
-      input.multiple = true;
-      input.onchange = async (e: any) => {
-        const files = Array.from(e.target.files || []) as File[];
-        if (files.length > 0) {
-          const newDocs = files.map(file => ({ blob: file, name: file.name }));
-          setSelectedDocs(prev => [...prev, ...newDocs]);
-        }
-      };
-      input.click();
-    }
-  };
-
-  const removeDoc = (index: number) => {
-    setSelectedDocs(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const removeExistingDoc = (index: number) => {
-    setNewIncident(prev => ({
-      ...prev,
-      documents: (prev.documents || []).filter((_, i) => i !== index)
-    }));
-  };
-
+  // Start Audio Recording
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
-        ? 'audio/webm' 
-        : MediaRecorder.isTypeSupported('audio/mp4') 
-          ? 'audio/mp4' 
-          : 'audio/ogg';
+      const recorder = new MediaRecorder(stream);
+      const chunks: BlobPart[] = [];
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-      setRecordingDuration(0);
-      mediaRecorder.ondataavailable = (e) => e.data.size > 0 && audioChunksRef.current.push(e.data);
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
         setAudioBlob(blob);
         setAudioUrl(URL.createObjectURL(blob));
       };
-      mediaRecorder.start();
+
+      recorder.start();
+      setMediaRecorder(recorder);
       setIsRecording(true);
     } catch (err) {
-      console.error(err);
+      console.error('Error accessing microphone:', err);
       alert(lang === 'am' ? 'ማይክሮፎን ማግኘት አልተቻለም' : 'Could not access microphone');
     }
   };
 
+  // Stop Audio Recording
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
       setIsRecording(false);
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      // Stop all tracks to release microphone
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
     }
   };
 
-  const deleteRecording = () => {
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setFormData(INITIAL_INCIDENT_STATE);
     setAudioBlob(null);
     setAudioUrl(null);
   };
 
+  // Form Submission with Audio Upload
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!newIncident.title.trim() || newIncident.title.length < 3) {
-      alert(lang === 'am' ? 'እባክዎ ትክክለኛ ርዕስ ያስገቡ (ቢያንስ 3 ፊደላት)' : 'Please enter a valid title (min 3 characters)');
-      return;
-    }
-    if (!newIncident.location.trim()) {
-      alert(lang === 'am' ? 'እባክዎ ትክክለኛ ቦታ ያስገቡ' : 'Please enter a valid location');
-      return;
-    }
-    if (!newIncident.officerId) {
-      alert(lang === 'am' ? 'እባክዎ መኮንን ይምረጡ' : 'Please select an officer');
-      return;
-    }
-    if (!newIncident.date) {
-      alert(lang === 'am' ? 'እባክዎ ቀን ይምረጡ' : 'Please select a date');
-      return;
-    }
-    if (new Date(newIncident.date) > new Date()) {
-      alert(lang === 'am' ? 'ቀን ከዛሬ ሊበልጥ አይችልም' : 'Date cannot be in the future');
-      return;
-    }
-    if (!newIncident.description?.trim() || newIncident.description.length < 10) {
-      alert(lang === 'am' ? 'እባክዎ ዝርዝር መግለጫ ያስገቡ (ቢያንስ 10 ፊደላት)' : 'Please enter a detailed description (min 10 characters)');
+    if (!formData.title.trim() || !formData.description.trim() || !formData.location.trim()) {
+      alert(lang === 'am' ? 'እባክዎ ሁሉንም አስፈላጊ መረጃዎች ያሟሉ' : 'Please fill all required fields');
       return;
     }
 
     setIsSubmitting(true);
-    try {
-      let finalVoiceUrl = newIncident.voice_url;
-      let finalDocuments = [...(newIncident.documents || [])];
-      let finalPhotos = [...(newIncident.photos || [])];
+    let finalVoiceUrl = '';
 
-      if (!navigator.onLine && (audioBlob || selectedDocs.length > 0)) {
-        const confirmSave = window.confirm(lang === 'am' 
-          ? 'ኔትወርክ የለም። ክስተቱ ይቀመጣል ነገር ግን ፋይሎች ሊጫኑ አይችሉም። መቀጠል ይፈልጋሉ?' 
-          : 'You are offline. The incident will be saved, but files cannot be uploaded. Do you want to continue?');
-        if (!confirmSave) {
-          setIsSubmitting(false);
-          return;
-        }
+    try {
+      // 1. If audio report exists, upload it to Firebase Storage
+      if (audioBlob) {
+        const voiceRef = ref(storage, `police_voice_reports/${Date.now()}_report.webm`);
+        const snapshot = await uploadBytes(voiceRef, audioBlob, { contentType: audioBlob.type });
+        finalVoiceUrl = await getDownloadURL(snapshot.ref);
       }
 
-      if (navigator.onLine) {
-        const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
-        const { storage } = await import('../firebase');
+      // 2. Add Incident report to backend
+      await onAdd({
+        ...formData,
+        voiceUrl: finalVoiceUrl,
+      });
 
-        if (audioBlob) {
-          const extension = audioBlob.type.includes('mp4') ? 'mp4' : audioBlob.type.includes('ogg') ? 'ogg' : 'webm';
-          const voiceRef = ref(storage, `incidents/${Date.now()}_voice.${extension}`);
-          const snapshot = await uploadBytes(voiceRef, audioBlob, { contentType: audioBlob.type });
-          finalVoiceUrl = await getDownloadURL(snapshot.ref);
+      handleCloseModal();
+    } catch (error) {
+      console.error('Submission error:', error);
+      alert(lang === 'am' ? 'ሪፖርቱን መላክ አልተቻለም፣ እባክዎ እንደገና ይሞክሩ' : 'Failed to submit report, please try again');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{t.incidents || 'Crime Reports'}</h1>
+          <p className="text-brand-text-secondary">{lang === 'am' ? 'የቀረቡ የወንጀልና የአደጋ ጥቆማዎችን ማስተዳደሪያ ገጽ' : 'Manage and monitor reported crime incidents'}</p>
+        </div>
+        <button onClick={() => setIsModalOpen(true)} className="btn-primary">
+          <Plus size={18} />
+          {lang === 'am' ? 'ጥቆማ መዝግብ' : 'File Report'}
+        </button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="glass-card p-6">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-text-secondary" size={18} />
+          <input 
+            type="text" 
+            placeholder={t.searchPlaceholder} 
+            className="input-field pl-10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Incidents Grid List */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredIncidents.map((incident) => (
+          <motion.div 
+            layout
+            key={incident.id} 
+            className="glass-card p-6 group flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-start justify-between mb-4">
+                <span className={`text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                  incident.status === 'Active' ? 'bg-amber-500/10 text-amber-400' : 'bg-emerald-500/10 text-emerald-400'
+                }`}>
+                  {incident.status === 'Active' 
+                    ? (lang === 'am' ? 'በሂደት ላይ' : 'Active') 
+                    : (lang === 'am' ? 'የተዘጋ' : 'Resolved')}
+                </span>
+                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button 
+                    onClick={() => setSelectedIncident(incident)}
+                    className="p-1.5 text-brand-text-secondary hover:text-brand-accent transition-colors"
+                  >
+                    <Eye size={18} />
+                  </button>
+                  <button 
+                    onClick={() => onDelete(incident.id)}
+                    className="p-1.5 text-brand-text-secondary hover:text-rose-400 transition-colors"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </div>
+
+              <h3 className="text-lg font-bold mb-2 line-clamp-1">{incident.title}</h3>
+              <p className="text-sm text-brand-text-secondary line-clamp-3 mb-4">{incident.description}</p>
+            </div>
+
+            <div className="space-y-2 pt-4 border-t border-brand-border text-xs text-brand-text-secondary">
+              <div className="flex items-center gap-2">
+                <ShieldAlert size={14} className="text-brand-accent" />
+                <span>{incident.category}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin size={14} className="text-brand-accent" />
+                <span className="line-clamp-1">{incident.location}</span>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Modal: Add Incident */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items
