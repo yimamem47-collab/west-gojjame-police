@@ -6,7 +6,7 @@ import { Language, translations } from '../lib/translations';
 import { onFirestoreStatusChange, clearFirestoreCache } from '../firebase';
 import { testFirebaseConnection, testTelegramConnection, testGoogleSheetsConnection, DiagnosticResult } from '../services/diagnosticService';
 import { APP_VERSION } from '../constants';
-import { syncToGitHub } from '../services/githubFileService';
+import { testFirebaseConnection, testTelegramConnection, testGoogleSheetsConnection, DiagnosticResult } from '../services/diagnostics';
 
 interface SettingsProps {
   user: UserType | null;
