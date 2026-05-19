@@ -6,7 +6,6 @@ import { Language, translations } from '../lib/translations';
 import { onFirestoreStatusChange, clearFirestoreCache } from '../firebase';
 import { testFirebaseConnection, testTelegramConnection, testGoogleSheetsConnection, DiagnosticResult } from '../services/diagnosticService';
 import { APP_VERSION } from '../constants';
-// 🔥 እዚህ ጋር pushFileToGitHub የነበረው ወደ syncToGitHub ተስተካክሏል
 import { syncToGitHub } from '../services/githubFileService';
 
 interface SettingsProps {
@@ -53,7 +52,6 @@ export function Settings({ user, lang, onUpdate }: SettingsProps) {
     setShowGithubDetails(true);
     
     try {
-      // 🔥 እዚህ ጋር በቀጥታ የፈጠርነውን የ githubFileService ፈንክሽን እንጠራዋለን
       const filesToSync = ['src/App.tsx', 'src/components/Settings.tsx'];
       const data = await syncToGitHub(filesToSync);
       
@@ -335,6 +333,7 @@ export function Settings({ user, lang, onUpdate }: SettingsProps) {
             </div>
           </div>
 
+          {/* Profile Information */}
           <div className="glass-card p-8">
             <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
               <User size={20} className="text-brand-accent" />
@@ -383,10 +382,75 @@ export function Settings({ user, lang, onUpdate }: SettingsProps) {
             </form>
           </div>
 
+          {/* Security */}
           <div className="glass-card p-8">
             <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
               <Shield size={20} className="text-brand-accent" />
               Security
             </h3>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-
+              <div className="flex items-center justify-between p-4 bg-brand-bg/30 border border-brand-border rounded-xl">
+                <div>
+                  <p className="font-bold">Two-Factor Authentication</p>
+                  <p className="text-sm text-brand-text-secondary">Add an extra layer of security to your account.</p>
+                </div>
+                <button className="text-brand-accent font-bold text-sm">Enable</button>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-brand-bg/30 border border-brand-border rounded-xl">
+                <div>
+                  <p className="font-bold">Change Password</p>
+                  <p className="text-sm text-brand-text-secondary">Update your password regularly to stay secure.</p>
+                </div>
+                <button className="text-brand-accent font-bold text-sm">Update</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Sidebar */}
+        <div className="space-y-6">
+          <div className="glass-card p-8">
+            <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+              <Bell size={20} className="text-brand-accent" />
+              Notifications
+            </h3>
+            <div className="space-y-4">
+              {['Email Notifications', 'Project Updates', 'Task Reminders', 'Invoice Alerts'].map((item) => (
+                <div key={item} className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{item}</span>
+                  <div className="w-10 h-5 bg-brand-accent/20 rounded-full relative cursor-pointer border border-brand-accent/30">
+                    <div className="absolute right-1 top-1 w-3 h-3 bg-brand-accent rounded-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="glass-card p-8">
+            <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+              <Palette size={20} className="text-brand-accent" />
+              Appearance
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              <button className="p-4 bg-brand-bg border-2 border-brand-accent rounded-xl text-center">
+                <p className="text-xs font-bold">Dark</p>
+              </button>
+              <button className="p-4 bg-slate-100 border-2 border-transparent rounded-xl text-center opacity-50 cursor-not-allowed">
+                <p className="text-xs font-bold text-slate-900">Light</p>
+              </button>
+            </div>
+          </div>
+
+          <div className="p-6 border border-brand-border/10 rounded-2xl bg-brand-bg/20 flex flex-col items-center">
+            <div className="flex items-center gap-2 text-brand-text-secondary/50 mb-2">
+              <Info size={14} />
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Application Build Info</span>
+            </div>
+            <p className="text-xs font-mono text-brand-text-secondary/80">Version: {APP_VERSION}</p>
+            <p className="text-[9px] font-mono text-brand-text-secondary/40 mt-1 uppercase tracking-tighter">Production Channel • Optimized Build</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
