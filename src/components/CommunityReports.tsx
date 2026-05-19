@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Search, MapPin, Calendar, Phone, Mail, CheckCircle, Clock } from 'lucide-react';
+import { Users, Plus, Search, MapPin, Calendar, Phone, Mail, CheckCircle, Clock, Image as ImageIcon, FileText as FileIcon, X } from 'lucide-react';
 import { CommunityReport } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, translations } from '../lib/translations';
@@ -85,11 +85,12 @@ export function CommunityReports({ lang }: CommunityReportsProps) {
     try {
       await addDoc(collection(db, 'community_reports'), {
         ...newReport,
+        files: [], // Dashboard submissions start with empty arrays safely
         status: 'New',
         timestamp: serverTimestamp()
       });
 
-      // Send to Google Sheets
+      // Send to Google Sheets API
       const sheetURL = "https://script.google.com/macros/s/AKfycbw2Bkjrv9SbObSFs0xOlcONYKJKpsa_lqSu2to4PfIKlHoP8U5KVMj0DQYrkvkS_jYS/exec";
       
       const reportData = {
@@ -102,9 +103,6 @@ export function CommunityReports({ lang }: CommunityReportsProps) {
         status: 'New Community Report'
       };
       
-      console.log("Sending report to Google Sheets from Dashboard:", reportData);
-      
-      // Send to Google Sheets in the background without blocking
       fetch(sheetURL, {
         method: 'POST',
         mode: 'no-cors',
@@ -112,8 +110,7 @@ export function CommunityReports({ lang }: CommunityReportsProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(reportData)
-      }).then(() => console.log("Data successfully sent to Google Sheets from Dashboard"))
-        .catch(error => console.error("Error sending to Google Sheets:", error));
+      }).catch(error => console.error("Error sending to Google Sheets:", error));
 
       setIsModalOpen(false);
       setNewReport({
@@ -147,22 +144,22 @@ export function CommunityReports({ lang }: CommunityReportsProps) {
     <div className="space-y-8">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{lang === 'am' ? 'የማህበረሰብ ሪፖርቶች' : 'Community Reports'}</h1>
-          <p className="text-brand-text-secondary">{lang === 'am' ? 'ከህብረተሰቡ የሚመጡ ጥቆማዎች እና ሪፖርቶች' : 'Tips and reports submitted by citizens.'}</p>
+          <h1 className="text-3xl font-bold tracking-tight text-white">{lang === 'am' ? 'የማህበረሰብ ሪፖርቶች' : 'Community Reports'}</h1>
+          <p className="text-brand-text-secondary text-sm">{lang === 'am' ? 'ከህብረተሰቡ የሚመጡ ጥቆማዎች እና ሪፖርቶች' : 'Tips and reports submitted by citizens.'}</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="btn-primary">
+        <button onClick={() => setIsModalOpen(true)} className="btn-primary py-2.5 px-4 rounded-lg bg-brand-accent text-brand-bg font-semibold flex items-center gap-2 hover:bg-brand-accent/90 transition-all text-sm shadow-lg">
           <Plus size={18} />
           {lang === 'am' ? 'አዲስ ሪፖርት አቅርብ' : 'Submit New Report'}
         </button>
       </div>
 
-      <div className="glass-card p-6">
+      <div className="glass-card p-4 rounded-xl bg-white/5 border border-white/10 shadow-md">
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-text-secondary" size={18} />
           <input 
             type="text" 
             placeholder={lang === 'am' ? 'ፈልግ...' : 'Search reports...'} 
-            className="input-field pl-10"
+            className="w-full bg-brand-bg/50 border border-white/10 rounded-lg py-2 pl-10 pr-4 text-white placeholder-brand-text-secondary text-sm focus:outline-none focus:ring-2 focus:ring-brand-accent/50 transition-all"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -170,166 +167,5 @@ export function CommunityReports({ lang }: CommunityReportsProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <AnimatePresence>
-          {filteredReports.map((report) => (
-            <motion.div 
-              layout
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              key={report.id} 
-              className="glass-card p-6 border-l-4 border-brand-accent"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-xl font-bold text-brand-text-primary mb-1">{report.reporterName}</h3>
-                  <div className="flex items-center gap-4 text-sm text-brand-text-secondary">
-                    <span className="flex items-center gap-1"><Phone size={14} /> {report.reporterPhone}</span>
-                    {report.reporterEmail && <span className="flex items-center gap-1"><Mail size={14} /> {report.reporterEmail}</span>}
-                  </div>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                  report.status === 'New' ? 'bg-blue-500/20 text-blue-400' :
-                  report.status === 'Reviewed' ? 'bg-amber-500/20 text-amber-400' :
-                  'bg-emerald-500/20 text-emerald-400'
-                }`}>
-                  {report.status}
-                </span>
-              </div>
-              
-              <div className="space-y-3 mb-6">
-                <div className="flex items-center gap-2 text-brand-text-secondary">
-                  <MapPin size={16} className="text-brand-accent" />
-                  <span>{report.location}</span>
-                </div>
-                <div className="flex items-center gap-2 text-brand-text-secondary">
-                  <Calendar size={16} className="text-brand-accent" />
-                  <span>{report.date}</span>
-                </div>
-              </div>
-
-              <div className="bg-brand-bg/50 p-4 rounded-xl border border-brand-border mb-6">
-                <p className="text-brand-text-primary whitespace-pre-wrap">{report.details}</p>
-              </div>
-
-              <div className="flex gap-2 border-t border-brand-border pt-4">
-                {report.status === 'New' && (
-                  <button 
-                    onClick={() => updateStatus(report.id, 'Reviewed')}
-                    className="flex-1 flex items-center justify-center gap-2 py-2 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 rounded-lg transition-colors font-medium text-sm"
-                  >
-                    <Clock size={16} />
-                    {lang === 'am' ? 'እንደታየ ምልክት አድርግ' : 'Mark Reviewed'}
-                  </button>
-                )}
-                {report.status !== 'Action Taken' && (
-                  <button 
-                    onClick={() => updateStatus(report.id, 'Action Taken')}
-                    className="flex-1 flex items-center justify-center gap-2 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-lg transition-colors font-medium text-sm"
-                  >
-                    <CheckCircle size={16} />
-                    {lang === 'am' ? 'እርምጃ ተወስዷል' : 'Mark Action Taken'}
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
-
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="glass-card w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto"
-          >
-            <h2 className="text-2xl font-bold mb-6">{lang === 'am' ? 'አዲስ የማህበረሰብ ሪፖርት' : 'New Community Report'}</h2>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-brand-bg/50 p-4 rounded-xl border border-brand-border shadow-sm">
-                  <label className="block text-sm font-medium text-brand-text-secondary mb-2">{lang === 'am' ? 'ሙሉ ስም' : 'Full Name'}</label>
-                  <input 
-                    required
-                    type="text" 
-                    className="input-field" 
-                    value={newReport.reporterName}
-                    onChange={(e) => setNewReport({...newReport, reporterName: e.target.value})}
-                  />
-                </div>
-                <div className="bg-brand-bg/50 p-4 rounded-xl border border-brand-border shadow-sm">
-                  <label className="block text-sm font-medium text-brand-text-secondary mb-2">{lang === 'am' ? 'ስልክ ቁጥር' : 'Phone Number'}</label>
-                  <input 
-                    required
-                    type="tel" 
-                    className="input-field" 
-                    value={newReport.reporterPhone}
-                    onChange={(e) => setNewReport({...newReport, reporterPhone: e.target.value})}
-                  />
-                </div>
-                <div className="bg-brand-bg/50 p-4 rounded-xl border border-brand-border shadow-sm">
-                  <label className="block text-sm font-medium text-brand-text-secondary mb-2">{lang === 'am' ? 'ኢሜይል (አማራጭ)' : 'Email (Optional)'}</label>
-                  <input 
-                    type="email" 
-                    className="input-field" 
-                    value={newReport.reporterEmail}
-                    onChange={(e) => setNewReport({...newReport, reporterEmail: e.target.value})}
-                  />
-                </div>
-                <div className="bg-brand-bg/50 p-4 rounded-xl border border-brand-border shadow-sm">
-                  <label className="block text-sm font-medium text-brand-text-secondary mb-2">{lang === 'am' ? 'ቀን' : 'Date'}</label>
-                  <input 
-                    required
-                    type="date" 
-                    className="input-field" 
-                    value={newReport.date}
-                    onChange={(e) => setNewReport({...newReport, date: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              <div className="bg-brand-bg/50 p-4 rounded-xl border border-brand-border shadow-sm">
-                <label className="block text-sm font-medium text-brand-text-secondary mb-2">{lang === 'am' ? 'ቦታ / አድራሻ' : 'Location / Address'}</label>
-                <input 
-                  required
-                  type="text" 
-                  className="input-field" 
-                  value={newReport.location}
-                  onChange={(e) => setNewReport({...newReport, location: e.target.value})}
-                />
-              </div>
-
-              <div className="bg-brand-bg/50 p-4 rounded-xl border border-brand-border shadow-sm">
-                <label className="block text-sm font-medium text-brand-text-secondary mb-2">{lang === 'am' ? 'የሪፖርቱ ዝርዝር' : 'Report Details'}</label>
-                <textarea 
-                  required
-                  className="input-field min-h-[120px]"
-                  value={newReport.details}
-                  onChange={(e) => setNewReport({...newReport, details: e.target.value})}
-                />
-              </div>
-
-              <div className="flex gap-4 pt-4">
-                <button 
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 btn-secondary"
-                  disabled={isSubmitting}
-                >
-                  {lang === 'am' ? 'ሰርዝ' : 'Cancel'}
-                </button>
-                <button 
-                  type="submit" 
-                  className="flex-1 btn-primary"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (lang === 'am' ? 'በመላክ ላይ...' : 'Submitting...') : (lang === 'am' ? 'አስገባ' : 'Submit')}
-                </button>
-              </div>
-            </form>
-          </motion.div>
-        </div>
-      )}
-    </div>
-  );
-}
+        <AnimatePresence mode="popLayout">
+          {filteredReports
