@@ -1,6 +1,6 @@
 import React from 'react';
 import { Shield, Target, Heart, Award, FileText, Download, MessageSquare, ShieldAlert } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion'; // Standard production package import path
 import { Language, translations } from '../lib/translations';
 
 interface PoliceServicesProps {
@@ -44,7 +44,7 @@ export function PoliceServices({ lang, onCorruptionReport }: PoliceServicesProps
           </p>
         </div>
 
-        <Shield size={200} className="absolute -right-10 -bottom-10 text-brand-bg/10 rotate-12" />
+        <Shield size={200} className="absolute -right-10 -bottom-10 text-brand-bg/10 rotate-12" aria-hidden="true" />
       </div>
 
       {/* Vision + Mission */}
@@ -161,8 +161,8 @@ export function PoliceServices({ lang, onCorruptionReport }: PoliceServicesProps
 
           <div className="space-y-6 flex-1">
             {complaintSteps.map((step, i) => (
-              <div key={i} className="flex gap-4">
-                <div className="step-circle">{i + 1}</div>
+              <div key={`step-${i}`} className="flex gap-4">
+                <div className="step-circle" aria-hidden="true">{i + 1}</div>
                 <p className="text-sm text-brand-text-secondary">{step}</p>
               </div>
             ))}
@@ -171,7 +171,7 @@ export function PoliceServices({ lang, onCorruptionReport }: PoliceServicesProps
           <div className="mt-8 pt-8 border-t border-brand-border">
             <button 
               onClick={onCorruptionReport}
-              aria-label="Report corruption"
+              aria-label={lang === 'am' ? 'የሙስና ጥቆማ ያድርጉ' : 'Report corruption'}
               className="btn-danger"
             >
               <ShieldAlert size={20} />
