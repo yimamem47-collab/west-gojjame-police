@@ -21,12 +21,12 @@ import {
   Car,
   MapPin
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react'; // Adjusted based on your framer-motion setup
 import { Language, translations } from '../lib/translations';
 import { onFirestoreStatusChange } from '../firebase';
 
+// Removed 'key' from props interface entirely
 interface SidebarItemProps {
-  key?: string;
   icon: React.ElementType;
   label: string;
   active: boolean;
@@ -62,7 +62,7 @@ interface LayoutProps {
 }
 
 export function Layout({ children, activeTab, setActiveTab, onBack, onLogout, userName, userRole, lang, setLang }: LayoutProps) {
-  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Cleaned up React.useState mix
   const [isFirestoreConnected, setIsFirestoreConnected] = useState(true);
   const t = translations[lang];
 
@@ -85,7 +85,7 @@ export function Layout({ children, activeTab, setActiveTab, onBack, onLogout, us
     ...(userRole === 'Admin' ? [{ id: 'officers', label: t.officers || 'Officers', icon: Users }] : []),
     { id: 'assignments', label: t.assignments || 'Assignments', icon: ClipboardList },
     { id: 'reports', label: t.reports || 'Reports', icon: FileText },
-    { id: 'zone-reports', label: t.zoneReports.title || 'Zone Reports', icon: ClipboardList },
+    { id: 'zone-reports', label: t.zoneReports?.title || 'Zone Reports', icon: ClipboardList },
     { id: 'community-reports', label: lang === 'am' ? 'የማህበረሰብ ሪፖርቶች' : 'Community Reports', icon: Users },
     { id: 'contacts', label: t.contacts || 'Contacts', icon: Phone },
     { id: 'info', label: t.publicServices || 'Public Services', icon: Shield },
