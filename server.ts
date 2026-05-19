@@ -77,7 +77,7 @@ async function startServer() {
       "src/lib/utils.ts",
 
       // Services
-      "src/services/diagnosticService.ts",
+      "src/services/diagnostics.ts",
       "src/services/geminiService.ts",
       "src/services/githubFileService.ts",
       "src/services/telegramService.ts",
